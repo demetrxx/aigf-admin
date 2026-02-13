@@ -1,22 +1,37 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
+  createCharacterImage as createCharacterImageApi,
+  getCharacterImageDetails,
+  getCharacterImages,
   useCharacterImages,
   useCreateCharacterImage,
 } from '@/app/character-images';
 import { useCharacterDetails, useCharacters } from '@/app/characters';
-import { notifyError } from '@/app/toast';
-import { PlusIcon } from '@/assets/icons';
+import { getCharacterDetails, getCharacters } from '@/app/characters/charactersApi';
+import { copyFile } from '@/app/files/filesApi';
+import { notifyError, notifySuccess } from '@/app/toast';
+import { DownloadIcon, PlusIcon, UploadIcon } from '@/assets/icons';
 import {
   Alert,
   Badge,
   Button,
+  ButtonGroup,
   Container,
   EmptyState,
   Field,
   FormRow,
+  IconButton,
   Input,
   Pagination,
   Select,
@@ -29,6 +44,7 @@ import {
 } from '@/atoms';
 import {
   FileDir,
+  type ICharacterDetails,
   type IFile,
   RoleplayStage,
   STAGES_IN_ORDER,
@@ -38,6 +54,13 @@ import { AppShell } from '@/components/templates';
 import { SearchSelect } from '@/pages/generations/components/SearchSelect';
 
 import s from './CharacterImagesPage.module.scss';
+import {
+  buildCharacterImagesTransferFileName,
+  buildCharacterImagesTransferPayload,
+  type CharacterImageTransferFile,
+  downloadCharacterImagesTransferFile,
+  parseCharacterImagesTransferFile,
+} from './characterImagesTransfer';
 
 type QueryUpdate = {
   search?: string;
@@ -141,7 +164,12 @@ function formatStage(value: RoleplayStage | null | undefined) {
   return STAGE_LABELS[value] ?? value;
 }
 
+function normalizeEntityName(value: string) {
+  return value.trim();
+}
+
 export function CharacterImagesPage() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawSearch = searchParams.get('search') ?? '';
@@ -153,10 +181,13 @@ export function CharacterImagesPage() {
   const rawCharacterId = searchParams.get('characterId') ?? '';
   const rawScenarioId = searchParams.get('scenarioId') ?? '';
   const rawStage = searchParams.get('stage');
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const [searchInput, setSearchInput] = useState(rawSearch);
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
   const normalizedSearch = debouncedSearch.trim();
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const order = ORDER_VALUES.has(rawOrder ?? '') ? rawOrder! : DEFAULT_ORDER;
   const page = parsePositiveNumber(rawPage, 1);
@@ -651,6 +682,270 @@ export function CharacterImagesPage() {
     setIsDrawerOpen(false);
   };
 
+  const fetchAllImageSummaries = useCallback(async () => {
+    const allImages: Awaited<ReturnType<typeof getCharacterImages>>['data'] = [];
+    let skip = 0;
+    const take = 200;
+
+    while (true) {
+      const pageData = await getCharacterImages({
+        order: 'ASC',
+        skip,
+        take,
+      });
+      allImages.push(...pageData.data);
+      skip += pageData.data.length;
+      if (skip >= pageData.total || pageData.data.length === 0) {
+        break;
+      }
+    }
+
+    return allImages;
+  }, []);
+
+  const fetchAllCharacters = useCallback(async () => {
+    const allCharacters: Awaited<ReturnType<typeof getCharacters>>['data'] = [];
+    let skip = 0;
+    const take = 200;
+
+    while (true) {
+      const pageData = await getCharacters({
+        order: 'ASC',
+        skip,
+        take,
+      });
+      allCharacters.push(...pageData.data);
+      skip += pageData.data.length;
+      if (skip >= pageData.total || pageData.data.length === 0) {
+        break;
+      }
+    }
+
+    return allCharacters;
+  }, []);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const imagesList = await fetchAllImageSummaries();
+      const details = await Promise.all(
+        imagesList.map((image) => getCharacterImageDetails(image.id)),
+      );
+      const payload = buildCharacterImagesTransferPayload(details);
+      downloadCharacterImagesTransferFile(
+        payload,
+        buildCharacterImagesTransferFileName(),
+      );
+      notifySuccess('Images exported.', 'Images exported.');
+    } catch (error) {
+      notifyError(error, 'Unable to export images.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportButtonClick = () => {
+    if (isImporting || isExporting || createMutation.isPending) return;
+    importInputRef.current?.click();
+  };
+
+  const handleImportFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const imported = await parseCharacterImagesTransferFile(file);
+
+      const allCharacters = await fetchAllCharacters();
+      const requiredCharacterNames = new Set(
+        imported.images.map((item) => normalizeEntityName(item.characterName)),
+      );
+
+      const characterNameToIds = new Map<string, string[]>();
+      for (const name of requiredCharacterNames) {
+        characterNameToIds.set(name, []);
+      }
+      for (const character of allCharacters) {
+        const name = normalizeEntityName(character.name);
+        if (!name || !characterNameToIds.has(name)) continue;
+        characterNameToIds.get(name)?.push(character.id);
+      }
+
+      const missingCharacters: string[] = [];
+      const ambiguousCharacters: string[] = [];
+      const resolvedCharacterIdsByName = new Map<string, string>();
+
+      for (const name of requiredCharacterNames) {
+        const ids = characterNameToIds.get(name) ?? [];
+        if (ids.length === 0) {
+          missingCharacters.push(name);
+          continue;
+        }
+        if (ids.length > 1) {
+          ambiguousCharacters.push(name);
+          continue;
+        }
+        resolvedCharacterIdsByName.set(name, ids[0]);
+      }
+
+      if (missingCharacters.length > 0) {
+        throw new Error(
+          `Missing characters in target environment: ${missingCharacters.join(', ')}.`,
+        );
+      }
+      if (ambiguousCharacters.length > 0) {
+        throw new Error(
+          `Character names are not unique in target environment: ${ambiguousCharacters.join(', ')}.`,
+        );
+      }
+
+      const requiredScenarioNamesByCharacterId = new Map<string, Set<string>>();
+      for (const item of imported.images) {
+        const characterName = normalizeEntityName(item.characterName);
+        const scenarioName = normalizeEntityName(item.scenarioName);
+        const characterId = resolvedCharacterIdsByName.get(characterName);
+        if (!characterId) {
+          throw new Error(`Character "${characterName}" was not resolved.`);
+        }
+        const currentSet =
+          requiredScenarioNamesByCharacterId.get(characterId) ?? new Set<string>();
+        currentSet.add(scenarioName);
+        requiredScenarioNamesByCharacterId.set(characterId, currentSet);
+      }
+
+      const characterDetailsEntries = await Promise.all(
+        Array.from(requiredScenarioNamesByCharacterId.keys()).map(async (id) => [
+          id,
+          await getCharacterDetails(id),
+        ] as const),
+      );
+      const characterDetailsById = new Map<string, ICharacterDetails>(
+        characterDetailsEntries,
+      );
+
+      const resolvedScenarioIds = new Map<string, string>();
+      for (const [characterId, requiredScenarioNames] of requiredScenarioNamesByCharacterId.entries()) {
+        const details = characterDetailsById.get(characterId);
+        if (!details) {
+          throw new Error(`Character "${characterId}" details were not loaded.`);
+        }
+
+        const scenarioNameToIds = new Map<string, string[]>();
+        for (const name of requiredScenarioNames) {
+          scenarioNameToIds.set(name, []);
+        }
+
+        for (const scenario of details.scenarios) {
+          const scenarioName = normalizeEntityName(scenario.name);
+          if (!scenarioNameToIds.has(scenarioName)) continue;
+          scenarioNameToIds.get(scenarioName)?.push(scenario.id);
+        }
+
+        const missingScenarios: string[] = [];
+        const ambiguousScenarios: string[] = [];
+        for (const scenarioName of requiredScenarioNames) {
+          const ids = scenarioNameToIds.get(scenarioName) ?? [];
+          if (ids.length === 0) {
+            missingScenarios.push(scenarioName);
+            continue;
+          }
+          if (ids.length > 1) {
+            ambiguousScenarios.push(scenarioName);
+            continue;
+          }
+          resolvedScenarioIds.set(`${characterId}::${scenarioName}`, ids[0]);
+        }
+
+        if (missingScenarios.length > 0) {
+          throw new Error(
+            `Missing scenarios for character "${details.name}": ${missingScenarios.join(', ')}.`,
+          );
+        }
+        if (ambiguousScenarios.length > 0) {
+          throw new Error(
+            `Scenario names are not unique for character "${details.name}": ${ambiguousScenarios.join(', ')}.`,
+          );
+        }
+      }
+
+      const filesById = new Map<string, CharacterImageTransferFile>();
+      const registerFile = (transferFile: CharacterImageTransferFile) => {
+        const existingFile = filesById.get(transferFile.id);
+        if (
+          existingFile &&
+          (existingFile.path !== transferFile.path ||
+            existingFile.name !== transferFile.name ||
+            existingFile.mime !== transferFile.mime ||
+            existingFile.dir !== transferFile.dir ||
+            existingFile.status !== transferFile.status)
+        ) {
+          throw new Error(
+            `Conflicting file metadata for image id "${transferFile.id}" in import file.`,
+          );
+        }
+        filesById.set(transferFile.id, transferFile);
+      };
+
+      for (const item of imported.images) {
+        registerFile(item.file);
+        if (item.blurredFile) {
+          registerFile(item.blurredFile);
+        }
+      }
+
+      for (const transferFile of filesById.values()) {
+        await copyFile({
+          id: transferFile.id,
+          name: transferFile.name,
+          path: transferFile.path,
+          dir: transferFile.dir,
+          status: transferFile.status,
+          mime: transferFile.mime,
+          url: transferFile.url ?? undefined,
+        });
+      }
+
+      for (const item of imported.images) {
+        const characterName = normalizeEntityName(item.characterName);
+        const scenarioName = normalizeEntityName(item.scenarioName);
+        const characterId = resolvedCharacterIdsByName.get(characterName);
+        if (!characterId) {
+          throw new Error(`Character "${characterName}" was not resolved.`);
+        }
+        const scenarioId = resolvedScenarioIds.get(
+          `${characterId}::${scenarioName}`,
+        );
+        if (!scenarioId) {
+          throw new Error(
+            `Scenario "${scenarioName}" for character "${characterName}" was not resolved.`,
+          );
+        }
+
+        await createCharacterImageApi({
+          characterId,
+          scenarioId,
+          stage: item.stage,
+          description: item.description.trim(),
+          isPregenerated: item.isPregenerated,
+          isPromotional: item.isPromotional,
+          fileId: item.file.id,
+          blurredFileId: item.blurredFile?.id || undefined,
+        });
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['character-images'],
+      });
+      notifySuccess('Images imported.', 'Images imported.');
+    } catch (error) {
+      notifyError(error, 'Unable to import images.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <AppShell>
       <Container size="wide" className={s.page}>
@@ -658,9 +953,40 @@ export function CharacterImagesPage() {
           <div className={s.titleBlock}>
             <Typography variant="h2">Images</Typography>
           </div>
-          <Button iconLeft={<PlusIcon />} onClick={openCreateDrawer}>
-            Add image
-          </Button>
+          <ButtonGroup>
+            <IconButton
+              aria-label="Export images"
+              tooltip="Export images"
+              icon={<DownloadIcon />}
+              variant="ghost"
+              onClick={handleExport}
+              loading={isExporting}
+              disabled={isImporting || createMutation.isPending}
+            />
+            <IconButton
+              aria-label="Import images"
+              tooltip="Import images"
+              icon={<UploadIcon />}
+              variant="ghost"
+              onClick={handleImportButtonClick}
+              loading={isImporting}
+              disabled={isExporting || createMutation.isPending}
+            />
+            <Button
+              iconLeft={<PlusIcon />}
+              onClick={openCreateDrawer}
+              disabled={isImporting}
+            >
+              Add image
+            </Button>
+          </ButtonGroup>
+          <input
+            ref={importInputRef}
+            className={s.hiddenInput}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFileChange}
+          />
         </div>
 
         <div className={s.filters}>

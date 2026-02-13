@@ -21,6 +21,10 @@
   flex-wrap: wrap;
 }
 
+.hiddenInput {
+  display: none;
+}
+
 .titleBlock {
   display: flex;
   flex-direction: column;
