@@ -1,0 +1,79 @@
+.echo-toaster[data-sonner-toaster] {
+  font-family: var(--font-ui);
+  z-index: calc(var(--z-modal) + 10);
+  --border-radius: var(--radius-base);
+  --width: 360px;
+  --normal-bg: hsl(var(--bg)) !important;
+  --normal-border: hsl(var(--border)) !important;
+  --normal-text: hsl(var(--fg)) !important;
+  --success-bg: hsl(var(--accent-muted)) !important;
+  --success-border: hsl(var(--border-strong)) !important;
+  --success-text: hsl(var(--accent)) !important;
+  --info-bg: hsl(var(--bg)) !important;
+  --info-border: hsl(var(--border)) !important;
+  --info-text: hsl(var(--accent)) !important;
+  --warning-bg: hsl(var(--bg)) !important;
+  --warning-border: hsl(var(--border)) !important;
+  --warning-text: hsl(var(--warning)) !important;
+  --error-bg: hsl(var(--bg)) !important;
+  --error-border: hsl(var(--border)) !important;
+  --error-text: hsl(var(--danger)) !important;
+  --toast-icon-margin-start: -2px;
+  --toast-icon-margin-end: 6px;
+}
+
+.echo-toaster [data-sonner-toast].echo-toast {
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--bg)) !important;
+  color: hsl(var(--fg)) !important;
+}
+
+.echo-toaster [data-sonner-toast][data-styled='true'].echo-toast {
+  box-shadow: none !important;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
+}
+
+.echo-toaster [data-sonner-toast][data-styled='true'].echo-toast [data-title] {
+  font-weight: 500;
+}
+
+.echo-toaster
+  [data-sonner-toast][data-styled='true'].echo-toast
+  [data-description] {
+  color: hsl(var(--fg-muted)) !important;
+}
+
+.echo-toaster
+  [data-sonner-toast][data-styled='true'].echo-toast
+  [data-close-button] {
+  border-radius: var(--radius-pill);
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--fg-muted)) !important;
+}
+
+.echo-toaster
+  [data-sonner-toast][data-styled='true'].echo-toast
+  [data-close-button]:hover {
+  background: hsl(var(--accent-muted)) !important;
+  border-color: hsl(var(--border-strong)) !important;
+  color: hsl(var(--fg)) !important;
+}
+
+.echo-toaster [data-sonner-toast][data-type='success'].echo-toast {
+  background: hsl(var(--accent-muted)) !important;
+  border-color: hsl(var(--border-strong)) !important;
+  color: hsl(var(--accent)) !important;
+}
+
+.echo-toaster [data-sonner-toast][data-type='error'].echo-toast {
+  color: hsl(var(--danger)) !important;
+}
+
+@media (max-width: 720px) {
+  .echo-toaster[data-sonner-toaster] {
+    --width: calc(100% - (var(--space-4) * 2));
+  }
+}

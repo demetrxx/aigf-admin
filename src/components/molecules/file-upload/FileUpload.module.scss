@@ -1,0 +1,70 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.info {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.name {
+  font-weight: 500;
+  max-width: 280px;
+}
+
+.meta {
+  color: hsl(var(--fg-muted));
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.previewRow {
+  display: flex;
+}
+
+.preview {
+  width: 160px;
+  height: 120px;
+  border-radius: var(--radius-sm);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg));
+  object-fit: contain;
+}
+
+.hiddenInputWrapper {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.hiddenInputWrapper:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.hiddenInput {
+  width: 1px;
+  height: 1px;
+}

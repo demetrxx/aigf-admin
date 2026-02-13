@@ -1,0 +1,97 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-8) 16px;
+  background: hsl(var(--page-bg));
+  display: flex;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  padding-top: 80px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+
+  position: absolute;
+  top: 80px;
+
+
+  img {
+    height: 80px;
+    width: auto;
+  }
+}
+
+.grid {
+  align-items: center;
+}
+
+.intro {
+  padding-right: var(--space-6);
+}
+
+.copy {
+  max-width: 52ch;
+}
+
+.panel {
+  background: hsl(var(--bg));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-base);
+  padding: var(--space-6);
+  min-height: 420px;
+}
+
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.oauth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .intro {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
+    align-items: stretch;
+  }
+
+  .brandRow {
+    margin-bottom: var(--space-5);
+  }
+
+  .panel {
+    padding: var(--space-5);
+    min-height: auto;
+  }
+}

@@ -1,0 +1,237 @@
+.button {
+  --btn-tone: hsl(var(--accent));
+  --btn-tone-hover: hsl(var(--accent-hover));
+  --btn-tone-active: hsl(var(--accent-active));
+  --btn-tone-muted: hsl(var(--accent-muted));
+  --btn-tone-muted-hover: hsl(var(--accent-muted-hover));
+  --btn-tone-foreground: hsl(var(--accent-foreground));
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-base);
+  border: 1px solid transparent;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.loader {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-round);
+  border: 2px solid hsl(var(--fg) / 0.2);
+  border-top-color: currentColor;
+  animation: spin 0.8s linear infinite;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.sizeSm {
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  --btn-icon-size: 28px;
+
+  .icon svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.sizeMd {
+  padding: 8px 14px;
+  font-size: var(--text-md);
+  --btn-icon-size: 32px;
+
+  .icon svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.sizeLg {
+  padding: 10px 16px;
+  font-size: var(--text-lg);
+  --btn-icon-size: 40px;
+
+  .icon svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.variantPrimary {
+  background: var(--btn-tone);
+  color: var(--btn-tone-foreground);
+}
+
+.variantPrimary:hover {
+  background: var(--btn-tone-hover);
+}
+
+.variantPrimary:active {
+  background: var(--btn-tone-active);
+}
+
+.variantSecondary {
+  background: transparent;
+  color: var(--btn-tone);
+  border-color: hsl(var(--border));
+}
+
+.variantSecondary:hover {
+  background: var(--btn-tone-muted);
+  border-color: hsl(var(--border-strong));
+}
+
+.variantSecondary:active {
+  background: var(--btn-tone-muted-hover);
+}
+
+.variantGhost {
+  background: transparent;
+  color: hsl(var(--fg));
+}
+
+.variantGhost.toneDanger {
+  color: var(--btn-tone);
+}
+
+.variantGhost:hover {
+  background: var(--btn-tone-muted);
+}
+
+.variantGhost:active {
+  background: var(--btn-tone-muted-hover);
+}
+
+.variantOutline {
+  background: transparent;
+  color: var(--btn-tone);
+  border-color: var(--btn-tone);
+}
+
+.variantOutline:hover {
+  background: var(--btn-tone-muted);
+}
+
+.variantOutline:active {
+  background: var(--btn-tone-muted-hover);
+}
+
+.variantText {
+  background: transparent;
+  color: var(--btn-tone);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.variantText:hover {
+  text-decoration: underline;
+}
+
+.variantText:disabled,
+.disabled.variantText {
+  color: hsl(var(--fg-muted)) !important;
+  background: transparent !important;
+  border: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.button:focus-visible {
+  outline: 2px solid hsl(var(--focus-ring));
+  outline-offset: 2px;
+}
+
+.iconOnly {
+  padding: 0;
+  width: var(--btn-icon-size);
+  height: var(--btn-icon-size);
+}
+
+.iconOnly .label {
+  display: none;
+}
+
+.iconOnly .content {
+  gap: 0;
+}
+
+.button:disabled,
+.disabled {
+  background: var(--btn-tone-muted);
+  color: var(--btn-tone);
+  border-color: hsl(var(--border));
+  cursor: not-allowed;
+}
+
+.loading {
+  cursor: progress;
+}
+
+.toneAccent {
+  --btn-tone: hsl(var(--accent));
+  --btn-tone-hover: hsl(var(--accent-hover));
+  --btn-tone-active: hsl(var(--accent-active));
+  --btn-tone-muted: hsl(var(--accent-muted));
+  --btn-tone-muted-hover: hsl(var(--accent-muted-hover));
+  --btn-tone-foreground: hsl(var(--accent-foreground));
+}
+
+.toneSuccess {
+  --btn-tone: hsl(var(--success));
+  --btn-tone-hover: color-mix(in hsl, hsl(var(--success)) 90%, black);
+  --btn-tone-active: color-mix(in hsl, hsl(var(--success)) 80%, black);
+  --btn-tone-muted: color-mix(in hsl, hsl(var(--success)) 12%, white);
+  --btn-tone-muted-hover: color-mix(in hsl, hsl(var(--success)) 16%, white);
+  --btn-tone-foreground: hsl(0 0% 100%);
+}
+
+.toneWarning {
+  --btn-tone: hsl(var(--warning));
+  --btn-tone-hover: color-mix(in hsl, hsl(var(--warning)) 90%, black);
+  --btn-tone-active: color-mix(in hsl, hsl(var(--warning)) 80%, black);
+  --btn-tone-muted: color-mix(in hsl, hsl(var(--warning)) 12%, white);
+  --btn-tone-muted-hover: color-mix(in hsl, hsl(var(--warning)) 16%, white);
+  --btn-tone-foreground: hsl(0 0% 100%);
+}
+
+.toneDanger {
+  --btn-tone: hsl(var(--danger));
+  --btn-tone-hover: color-mix(in hsl, hsl(var(--danger)) 90%, black);
+  --btn-tone-active: color-mix(in hsl, hsl(var(--danger)) 80%, black);
+  --btn-tone-muted: color-mix(in hsl, hsl(var(--danger)) 12%, white);
+  --btn-tone-muted-hover: color-mix(in hsl, hsl(var(--danger)) 16%, white);
+  --btn-tone-foreground: hsl(0 0% 100%);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

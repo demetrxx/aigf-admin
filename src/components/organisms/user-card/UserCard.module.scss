@@ -1,0 +1,44 @@
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 2px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-base);
+  transition: color var(--transition), background-color var(--transition);
+}
+
+.active,
+.card:hover {
+  color: hsl(var(--accent));
+  background: hsl(var(--accent-muted));
+}
+
+.card:focus-visible {
+  outline: 2px solid hsl(var(--focus-ring));
+  outline-offset: 2px;
+}
+
+.card:active {
+  color: hsl(var(--accent-active));
+}
+
+.name {
+  transition: color var(--transition);
+}
+
+.plan {
+  transition: color var(--transition);
+}
+
+.card:hover .name,
+.card:hover .plan {
+  color: hsl(var(--accent));
+}
+
+.card:active .name,
+.card:active .plan {
+  color: hsl(var(--accent-active));
+}

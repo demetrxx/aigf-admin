@@ -1,0 +1,21 @@
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--radius-base);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  color: hsl(var(--fg));
+  cursor: pointer;
+}
+
+.item:hover {
+  background: hsl(var(--accent-muted));
+}

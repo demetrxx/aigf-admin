@@ -1,0 +1,36 @@
+.badge {
+  --badge-bg: hsl(var(--accent-muted));
+  --badge-color: hsl(var(--accent));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  line-height: 1;
+  font-weight: 500;
+}
+
+.toneSuccess {
+  --badge-bg: color-mix(in hsl, hsl(var(--success)) 12%, white);
+  --badge-color: hsl(var(--success));
+}
+
+.toneWarning {
+  --badge-bg: color-mix(in hsl, hsl(var(--warning)) 12%, white);
+  --badge-color: hsl(var(--warning));
+}
+
+.toneDanger {
+  --badge-bg: color-mix(in hsl, hsl(var(--danger)) 12%, white);
+  --badge-color: hsl(var(--danger));
+}
+
+.outline {
+  background: transparent;
+  border: 1px solid var(--badge-color);
+}

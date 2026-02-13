@@ -1,0 +1,12 @@
+.divider {
+  width: 100%;
+  height: 1px;
+  background: hsl(var(--border));
+  border: none;
+  margin: 0;
+}
+
+.vertical {
+  width: 1px;
+  height: auto;
+}

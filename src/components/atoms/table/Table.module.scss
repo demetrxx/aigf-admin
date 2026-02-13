@@ -1,0 +1,21 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--lh-normal);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.table thead th {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  color: hsl(var(--fg-muted));
+}

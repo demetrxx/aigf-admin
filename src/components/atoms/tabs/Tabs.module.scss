@@ -1,0 +1,20 @@
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.tab {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--fg-muted));
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+
+.tabActive {
+  color: hsl(var(--accent));
+  border-bottom: 2px solid hsl(var(--accent));
+}

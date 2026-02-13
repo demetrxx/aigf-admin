@@ -1,0 +1,15 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-8) 16px;
+  background: hsl(var(--page-bg));
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .page {
+    align-items: stretch;
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
+  }
+}

@@ -1,0 +1,46 @@
+.root {
+  margin: 0;
+  color: hsl(var(--fg));
+}
+
+.toneMuted {
+  color: hsl(var(--fg-muted));
+}
+
+.toneAccent {
+  color: hsl(var(--accent));
+}
+
+.toneSuccess {
+  color: hsl(var(--success));
+}
+
+.toneWarning {
+  color: hsl(var(--warning));
+}
+
+.toneDanger {
+  color: hsl(var(--danger));
+}
+
+.alignLeft {
+  text-align: left;
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.readingWidth {
+  max-width: 68ch;
+}

@@ -1,0 +1,62 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg));
+  color: hsl(var(--fg));
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.wrapper:focus-within {
+  border-color: hsl(var(--accent));
+  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.2);
+}
+
+.textarea {
+  resize: vertical;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--lh-normal);
+}
+
+.textarea::placeholder {
+  color: hsl(var(--fg-muted));
+}
+
+.sizeSm {
+  padding: 6px 10px;
+  border-radius: var(--radius-base);
+}
+
+.sizeMd {
+  padding: 8px 12px;
+}
+
+.sizeLg {
+  padding: 10px 14px;
+  border-radius: var(--radius-base);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.invalid {
+  border-color: hsl(var(--danger));
+}
+
+.invalid:focus-within {
+  box-shadow: 0 0 0 3px hsl(var(--danger) / 0.18);
+}
+
+.disabled {
+  background: hsl(var(--accent-muted));
+  color: hsl(var(--fg-muted));
+  cursor: not-allowed;
+}

@@ -1,0 +1,33 @@
+.card {
+  background: hsl(var(--bg));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-base);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.muted {
+  background: hsl(var(--accent-muted));
+  border-color: hsl(var(--border-strong));
+  box-shadow: none;
+}
+
+.ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transition: background var(--transition);
+  padding: 0;
+}
+
+.paddingSm {
+  padding: var(--space-3);
+}
+
+.paddingMd {
+  padding: var(--space-4);
+}
+
+.paddingLg {
+  padding: var(--space-5);
+}

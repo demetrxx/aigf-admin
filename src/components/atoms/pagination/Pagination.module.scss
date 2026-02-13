@@ -1,0 +1,31 @@
+.pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.button {
+  min-width: 32px;
+  height: 32px;
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg));
+  color: hsl(var(--fg));
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: hsl(var(--accent-muted));
+}
+
+.active {
+  border-color: hsl(var(--accent));
+  color: hsl(var(--accent));
+}
+
+.disabled {
+  color: hsl(var(--fg-muted));
+  cursor: not-allowed;
+}

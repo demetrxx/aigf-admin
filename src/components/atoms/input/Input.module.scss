@@ -1,0 +1,95 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg));
+  color: hsl(var(--fg));
+  transition: border-color var(--transition), box-shadow var(--transition);
+  cursor: pointer;
+}
+
+.wrapper:hover {
+  border-color: hsl(var(--border-strong));
+}
+
+.wrapper:focus-within {
+  border-color: hsl(var(--accent));
+  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.2);
+  cursor: text;
+
+  .input {
+    cursor: text;
+  }
+}
+
+.input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--lh-normal);
+  cursor: pointer;
+}
+
+.input::placeholder {
+  color: hsl(var(--fg-muted));
+}
+
+.input[type='month'] {
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
+
+.input[type='month']::-webkit-datetime-edit,
+.input[type='month']::-webkit-datetime-edit-fields-wrapper,
+.input[type='month']::-webkit-datetime-edit-text,
+.input[type='month']::-webkit-datetime-edit-month-field,
+.input[type='month']::-webkit-datetime-edit-year-field {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  color: hsl(var(--fg-muted));
+}
+
+.sizeSm {
+  padding: 6px 10px;
+  border-radius: var(--radius-base);
+}
+
+.sizeMd {
+  padding: 8px 12px;
+}
+
+.sizeLg {
+  padding: 10px 14px;
+  border-radius: var(--radius-base);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.invalid {
+  border-color: hsl(var(--danger));
+}
+
+.invalid:focus-within {
+  box-shadow: 0 0 0 3px hsl(var(--danger) / 0.18);
+}
+
+.disabled {
+  background: hsl(var(--accent-muted));
+  color: hsl(var(--fg-muted));
+  cursor: not-allowed;
+}

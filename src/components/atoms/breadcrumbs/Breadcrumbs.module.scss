@@ -1,0 +1,22 @@
+.breadcrumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: hsl(var(--fg-muted));
+}
+
+.link {
+  color: hsl(var(--fg));
+  text-decoration: none;
+}
+
+.link:hover {
+  color: hsl(var(--accent));
+  text-decoration: underline;
+}
+
+.separator {
+  color: hsl(var(--fg-muted));
+}

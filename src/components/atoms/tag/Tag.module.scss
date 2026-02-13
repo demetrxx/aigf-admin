@@ -1,0 +1,40 @@
+.tag {
+  --tag-bg: hsl(var(--accent-muted));
+  --tag-color: hsl(var(--accent));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-base);
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: 1;
+  font-weight: 500;
+}
+
+.remove {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.toneSuccess {
+  --tag-bg: color-mix(in hsl, hsl(var(--success)) 12%, white);
+  --tag-color: hsl(var(--success));
+}
+
+.toneWarning {
+  --tag-bg: color-mix(in hsl, hsl(var(--warning)) 12%, white);
+  --tag-color: hsl(var(--warning));
+}
+
+.toneDanger {
+  --tag-bg: color-mix(in hsl, hsl(var(--danger)) 12%, white);
+  --tag-color: hsl(var(--danger));
+}

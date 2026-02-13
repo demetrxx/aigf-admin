@@ -1,0 +1,48 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inline {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inline .labelRow {
+  margin: 0;
+}
+
+.inline .label {
+  font-weight: 500;
+}
+
+.inline .hint,
+.inline .error {
+  grid-column: 2;
+}
+
+.labelRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  color: hsl(var(--fg));
+}
+
+.required {
+  font-size: var(--text-xs);
+  color: hsl(var(--fg-muted));
+}
+
+.hint {
+  color: hsl(var(--fg-muted));
+}
+
+.error {
+  color: hsl(var(--danger));
+}

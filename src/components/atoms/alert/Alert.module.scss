@@ -1,0 +1,47 @@
+.alert {
+  --alert-tone: hsl(var(--accent));
+  --alert-bg: hsl(var(--accent-muted));
+  --alert-border: hsl(var(--border-strong));
+
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--alert-border);
+  background: var(--alert-bg);
+  color: hsl(var(--fg));
+}
+
+.icon {
+  color: var(--alert-tone);
+  display: inline-flex;
+  align-items: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.toneSuccess {
+  --alert-tone: hsl(var(--success));
+  --alert-bg: color-mix(in hsl, hsl(var(--success)) 10%, hsl(var(--bg)));
+  --alert-border: color-mix(in hsl, hsl(var(--success)) 25%, hsl(var(--border)));
+}
+
+.toneWarning {
+  --alert-tone: hsl(var(--warning));
+  --alert-bg: color-mix(in hsl, hsl(var(--warning)) 10%, hsl(var(--bg)));
+  --alert-border: color-mix(in hsl, hsl(var(--warning)) 25%, hsl(var(--border)));
+}
+
+.toneDanger {
+  --alert-tone: hsl(var(--danger));
+  --alert-bg: color-mix(in hsl, hsl(var(--danger)) 10%, hsl(var(--bg)));
+  --alert-border: color-mix(in hsl, hsl(var(--danger)) 25%, hsl(var(--border)));
+}

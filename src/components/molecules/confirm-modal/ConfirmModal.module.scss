@@ -1,0 +1,9 @@
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.description {
+  color: hsl(var(--fg-muted));
+}

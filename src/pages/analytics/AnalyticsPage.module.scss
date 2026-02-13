@@ -1,0 +1,209 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.panel {
+  background: hsl(var(--color-surface));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-base);
+  box-shadow: none;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  margin-top: var(--space-6);
+}
+
+.filterRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filterField {
+  flex: 1 1 220px;
+}
+
+.filterNote {
+  max-width: 420px;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.kpiCard {
+  background: hsl(var(--color-surface));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-base);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kpiHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.kpiActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.kpiMonthInput {
+  //width: 150px;
+}
+
+.kpiLabel {
+  cursor: help;
+}
+
+.deltaRow {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chart {
+  width: 100%;
+  min-height: 260px;
+}
+
+.chartTooltip {
+  background: hsl(var(--color-surface));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tableWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.breakdownHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.breakdownTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.breakdownField {
+  min-width: 180px;
+}
+
+.breakdownName {
+  display: inline-block;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableHeader {
+  cursor: help;
+  font-size: 12px;
+
+}
+
+.alignRight {
+  display: inline-block;
+  width: 100%;
+  text-align: right;
+}
+
+.chart :global(.visx-axis path),
+.chart :global(.visx-axis line) {
+  stroke: hsl(var(--border));
+}
+
+.chart :global(.visx-axis text) {
+  fill: hsl(var(--fg-muted));
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+
+.chart :global(.visx-grid line) {
+  stroke: hsl(var(--border));
+  stroke-dasharray: 2 4;
+}
+
+.chart :global(.visx-line-path) {
+  stroke: hsl(var(--accent));
+  stroke-width: 2px;
+}
+
+.chart :global(.visx-series-point) {
+  fill: hsl(var(--accent));
+  stroke: hsl(var(--accent));
+}
+
+@media (max-width: 900px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .breakdownGrid {
+    grid-template-columns: 1fr;
+  }
+}

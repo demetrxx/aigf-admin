@@ -1,0 +1,108 @@
+project:
+  name: aigf-admin
+  type: spa
+  language: typescript
+  framework: react
+  build: vite
+  package_manager: pnpm
+
+architecture:
+  api: nestjs http
+  auth: cookie httpOnly sessions
+  data_fetching: tanstack query
+  routing: react router or tanstack router
+
+paths:
+  components: src/components
+  atoms: src/components/atoms
+  styles: src/styles
+  pages: src/pages
+  templates: src/templates
+
+ui_system:
+  styling: css modules
+  tokens: css variables (hsl/hex)
+  ui_font: inter
+  content_font: inter
+  headings: sans only
+  accent: airy blue #4AA3F0
+  focus: subtle focus ring
+  palette:
+    ink: "#1C232B"
+    muted: "#5B6675"
+    border: "#E4EAF0"
+    background: "#F7FAFC"
+    surface: "#FFFFFF"
+    accent: "#4AA3F0"
+    accent_tint: "#E3F1FD"
+
+components_usage:
+  buttons:
+    - Button
+    - IconButton
+    - ButtonGroup
+  typography:
+    - Typography (h1/h2/h3/body/meta/caption/control/prose/proseCompact)
+  forms:
+    - Field
+    - FormRow
+    - Input
+    - Textarea
+    - Select
+    - Checkbox
+    - Switch
+    - Radio
+    - RadioGroup
+  feedback:
+    - Alert
+    - Toast
+    - EmptyState
+    - Skeleton
+    - Progress
+  layout:
+    - Card
+    - Section
+    - Divider
+    - Stack
+    - Grid
+    - Container
+  data_display:
+    - Badge
+    - Tag
+    - Avatar
+    - List
+    - Table
+  navigation:
+    - Navigation
+    - Tabs
+    - Breadcrumbs
+    - Pagination
+  overlays:
+    - Modal
+    - Popover
+    - Dropdown
+    - Tooltip
+
+rules:
+  - avoid heavy cards/shadows
+  - no gradients or bright colors
+  - admin-first layouts (tables/forms/actions)
+  - use Button instead of raw button elements
+  - use Typography instead of raw p/span/h1-h3 for UI text
+  - use Input/Textarea/Select instead of raw form elements
+  - use Field and FormRow for form layout
+  - use typography roles (h1/h2/h3/body/meta/prose)
+  - internal tool tone; no marketing styling
+  - no tailwind
+  - prefer composition over prop explosion
+  - keep jsx clean; styles in css modules
+  - auth flow already implemented; update copy only
+
+accessibility:
+  - baseline keyboard navigation via radix primitives
+  - focus-visible styles
+
+commands:
+  dev: pnpm dev
+  build: pnpm build
+  lint: pnpm lint

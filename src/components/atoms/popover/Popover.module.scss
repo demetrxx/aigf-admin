@@ -1,0 +1,35 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.panel {
+  position: absolute;
+  min-width: 180px;
+  padding: var(--space-3);
+  border-radius: var(--radius-base);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg));
+  box-shadow: var(--shadow-sm);
+  z-index: var(--z-overlay);
+}
+
+.bottom {
+  top: calc(100% + 8px);
+  left: 0;
+}
+
+.top {
+  bottom: calc(100% + 8px);
+  left: 0;
+}
+
+.right {
+  left: calc(100% + 8px);
+  top: 0;
+}
+
+.left {
+  right: calc(100% + 8px);
+  top: 0;
+}
