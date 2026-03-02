@@ -57,6 +57,7 @@ const TYPE_FILTER_OPTIONS = [
   { label: 'All', value: 'all' },
   { label: 'Chat', value: PromptType.Chat },
   { label: 'Image', value: PromptType.Image },
+  { label: 'Ping', value: PromptType.Ping },
 ];
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -100,7 +101,12 @@ function resolveActiveFilter(value: string | null) {
 }
 
 function resolveTypeFilter(value: string | null) {
-  if (value === PromptType.Chat || value === PromptType.Image) return value;
+  if (
+    value === PromptType.Chat ||
+    value === PromptType.Image ||
+    value === PromptType.Ping
+  )
+    return value;
   return DEFAULT_TYPE_FILTER;
 }
 

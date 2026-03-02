@@ -14,6 +14,7 @@ export type PlansListParams = {
 const fallbackError = 'Unable to load plans.';
 const createFallbackError = 'Unable to create the plan.';
 const updateFallbackError = 'Unable to update the plan.';
+const deleteFallbackError = 'Unable to delete the plan.';
 
 export async function getPlans(params: PlansListParams) {
   const query = new URLSearchParams();
@@ -52,4 +53,13 @@ export async function updatePlan(id: string, payload: PlanUpdateDto) {
     throw await buildApiError(res, updateFallbackError);
   }
   return (await res.json()) as IPlan;
+}
+
+export async function deletePlan(id: string) {
+  const res = await apiFetch(`/admin/plans/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    throw await buildApiError(res, deleteFallbackError);
+  }
 }

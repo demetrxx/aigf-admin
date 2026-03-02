@@ -56,9 +56,9 @@ export function AuthPage() {
         <Grid columns={2} gap="48px" className={s.grid}>
           <Stack gap="24px" className={s.intro}>
             <header className={s.logo}>
-              <img src={Logo} alt="AIgf" />
+              <img src={Logo} alt="Aera" />
             </header>
-            <Typography variant="h1">AIgf Admin Console</Typography>
+            <Typography variant="h1">Aera Admin Console</Typography>
             <Typography variant="proseCompact" readingWidth className={s.copy}>
               Manage characters, send broadcasts, and monitor analytics from one
               console.
@@ -82,7 +82,7 @@ export function AuthPage() {
                   <Input
                     id="signin-email"
                     type="email"
-                    placeholder="you@aigfonline.com"
+                    placeholder="you@aeraonline.com"
                     autoComplete="email"
                     value={signInValues.email}
                     onChange={(event) =>

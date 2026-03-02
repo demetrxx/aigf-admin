@@ -1,5 +1,5 @@
 project:
-  name: aigf-admin
+  name: aera-admin
   type: spa
   language: typescript
   framework: react

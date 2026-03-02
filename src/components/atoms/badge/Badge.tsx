@@ -1,33 +1,36 @@
-import type { ReactNode } from 'react'
-import s from './Badge.module.scss'
+import type { ReactNode } from 'react';
 
-type BadgeTone = 'accent' | 'success' | 'warning' | 'danger'
+import s from './Badge.module.scss';
+
+type BadgeTone = 'accent' | 'success' | 'warning' | 'danger';
 
 type BadgeProps = {
-  children: ReactNode
-  tone?: BadgeTone
-  outline?: boolean
-}
+  children: ReactNode;
+  tone?: BadgeTone;
+  outline?: boolean;
+  className?: string;
+};
 
 const toneClassMap: Record<BadgeTone, string | null> = {
   accent: null,
   success: s.toneSuccess,
   warning: s.toneWarning,
   danger: s.toneDanger,
-}
+};
 
-export function Badge({ children, tone = 'accent', outline = false }: BadgeProps) {
+export function Badge({
+  children,
+  tone = 'accent',
+  outline = false,
+  className,
+}: BadgeProps) {
   return (
     <span
-      className={[
-        s.badge,
-        toneClassMap[tone],
-        outline && s.outline,
-      ]
+      className={[s.badge, toneClassMap[tone], outline && s.outline, className]
         .filter(Boolean)
         .join(' ')}
     >
       {children}
     </span>
-  )
+  );
 }

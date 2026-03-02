@@ -6,7 +6,7 @@ import {
   STAGES_IN_ORDER,
 } from '@/common/types';
 
-const CHARACTER_IMAGES_TRANSFER_SCHEMA = 'aigf-character-images';
+const CHARACTER_IMAGES_TRANSFER_SCHEMA = 'aera-character-images';
 const CHARACTER_IMAGES_TRANSFER_VERSION = 1;
 
 export type CharacterImageTransferFile = {

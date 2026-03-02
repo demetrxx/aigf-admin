@@ -21,6 +21,7 @@ import {
   Input,
   Skeleton,
   Stack,
+  Switch,
   Tabs,
   Textarea,
   Typography,
@@ -86,7 +87,13 @@ export function ScenarioSection({
   const [formValues, setFormValues] = useState({
     name: '',
     emoji: '',
+    slug: '',
     description: '',
+    isActive: true,
+    shortDescription: '',
+    isNew: false,
+    promoImgId: '',
+    promoImgHorizontalId: '',
     personality: '',
     messagingStyle: '',
     appearance: '',
@@ -97,6 +104,13 @@ export function ScenarioSection({
   const [editValues, setEditValues] = useState(formValues);
   const [openingFile, setOpeningFile] = useState<IFile | null>(null);
   const [editOpeningFile, setEditOpeningFile] = useState<IFile | null>(null);
+  const [promoFile, setPromoFile] = useState<IFile | null>(null);
+  const [editPromoFile, setEditPromoFile] = useState<IFile | null>(null);
+  const [promoHorizontalFile, setPromoHorizontalFile] = useState<IFile | null>(
+    null,
+  );
+  const [editPromoHorizontalFile, setEditPromoHorizontalFile] =
+    useState<IFile | null>(null);
 
   const scenarioTabs = scenarios.map((scenario) => ({
     value: scenario.id,
@@ -143,7 +157,13 @@ export function ScenarioSection({
     setFormValues({
       name: '',
       emoji: '',
+      slug: '',
       description: '',
+      isActive: true,
+      shortDescription: '',
+      isNew: false,
+      promoImgId: '',
+      promoImgHorizontalId: '',
       personality: '',
       messagingStyle: '',
       appearance: '',
@@ -152,6 +172,8 @@ export function ScenarioSection({
       openingImageId: '',
     });
     setOpeningFile(null);
+    setPromoFile(null);
+    setPromoHorizontalFile(null);
     setShowErrors(false);
     setIsCreateOpen(true);
   };
@@ -166,7 +188,13 @@ export function ScenarioSection({
     setEditValues({
       name: selectedScenario.name ?? '',
       emoji: selectedScenario.emoji ?? '',
+      slug: selectedScenario.slug ?? '',
       description: selectedScenario.description ?? '',
+      isActive: Boolean(selectedScenario.isActive),
+      shortDescription: selectedScenario.shortDescription ?? '',
+      isNew: Boolean(selectedScenario.isNew),
+      promoImgId: selectedScenario.promoImg?.id ?? '',
+      promoImgHorizontalId: selectedScenario.promoImgHorizontal?.id ?? '',
       personality: selectedScenario.personality ?? '',
       messagingStyle: selectedScenario.messagingStyle ?? '',
       appearance: selectedScenario.appearance ?? '',
@@ -175,6 +203,8 @@ export function ScenarioSection({
       openingImageId: selectedScenario.openingImage?.id ?? '',
     });
     setEditOpeningFile(selectedScenario.openingImage ?? null);
+    setEditPromoFile(selectedScenario.promoImg ?? null);
+    setEditPromoHorizontalFile(selectedScenario.promoImgHorizontal ?? null);
     setEditShowErrors(false);
     setIsEditOpen(true);
   };
@@ -218,7 +248,12 @@ export function ScenarioSection({
       payload: {
         name: formValues.name.trim(),
         emoji: formValues.emoji.trim(),
+        slug: formValues.slug.trim() || undefined,
         description: formValues.description.trim(),
+        shortDescription: formValues.shortDescription.trim() || undefined,
+        isNew: formValues.isNew,
+        promoImgId: formValues.promoImgId || undefined,
+        promoImgHorizontalId: formValues.promoImgHorizontalId || undefined,
         personality: formValues.personality.trim(),
         messagingStyle: formValues.messagingStyle.trim(),
         appearance: formValues.appearance.trim(),
@@ -246,7 +281,13 @@ export function ScenarioSection({
       payload: {
         name: editValues.name.trim(),
         emoji: editValues.emoji.trim(),
+        slug: editValues.slug.trim() || undefined,
         description: editValues.description.trim(),
+        isActive: editValues.isActive,
+        shortDescription: editValues.shortDescription.trim() || undefined,
+        isNew: editValues.isNew,
+        promoImgId: editValues.promoImgId || undefined,
+        promoImgHorizontalId: editValues.promoImgHorizontalId || undefined,
         personality: editValues.personality.trim(),
         messagingStyle: editValues.messagingStyle.trim(),
         appearance: editValues.appearance.trim(),
@@ -325,8 +366,6 @@ export function ScenarioSection({
     return resolved;
   };
 
-  console.log('file', selectedScenario?.openingImage);
-
   const handleExportScenario = async () => {
     if (!characterId || !selectedScenario) return;
 
@@ -397,11 +436,38 @@ export function ScenarioSection({
         mime: scenarioPayload.openingImage.mime,
         url: scenarioPayload.openingImage.url ?? undefined,
       });
+      if (scenarioPayload.promoImg) {
+        await copyFile({
+          id: scenarioPayload.promoImg.id,
+          name: scenarioPayload.promoImg.name,
+          dir: scenarioPayload.promoImg.dir,
+          path: scenarioPayload.promoImg.path,
+          status: scenarioPayload.promoImg.status,
+          mime: scenarioPayload.promoImg.mime,
+          url: scenarioPayload.promoImg.url ?? undefined,
+        });
+      }
+      if (scenarioPayload.promoImgHorizontal) {
+        await copyFile({
+          id: scenarioPayload.promoImgHorizontal.id,
+          name: scenarioPayload.promoImgHorizontal.name,
+          dir: scenarioPayload.promoImgHorizontal.dir,
+          path: scenarioPayload.promoImgHorizontal.path,
+          status: scenarioPayload.promoImgHorizontal.status,
+          mime: scenarioPayload.promoImgHorizontal.mime,
+          url: scenarioPayload.promoImgHorizontal.url ?? undefined,
+        });
+      }
 
       const createdScenario = await createScenarioApi(characterId, {
         name: scenarioPayload.name.trim(),
         emoji: scenarioPayload.emoji.trim(),
         description: scenarioPayload.description.trim(),
+        isActive: scenarioPayload.isActive,
+        shortDescription: scenarioPayload.shortDescription.trim() || undefined,
+        isNew: scenarioPayload.isNew,
+        promoImgId: scenarioPayload.promoImg?.id,
+        promoImgHorizontalId: scenarioPayload.promoImgHorizontal?.id,
         personality: scenarioPayload.personality.trim(),
         messagingStyle: scenarioPayload.messagingStyle.trim(),
         appearance: scenarioPayload.appearance.trim(),
@@ -583,6 +649,37 @@ export function ScenarioSection({
             </Field>
           </FormRow>
 
+          <FormRow columns={2}>
+            <Field label="Slug" labelFor="scenario-create-slug">
+              <Input
+                id="scenario-create-slug"
+                size="sm"
+                value={formValues.slug}
+                onChange={(event) =>
+                  setFormValues((prev) => ({
+                    ...prev,
+                    slug: event.target.value,
+                  }))
+                }
+                placeholder="Optional"
+                fullWidth
+              />
+            </Field>
+            <Field label="New" labelFor="scenario-create-is-new">
+              <Switch
+                id="scenario-create-is-new"
+                checked={formValues.isNew}
+                onChange={(event) =>
+                  setFormValues((prev) => ({
+                    ...prev,
+                    isNew: event.target.checked,
+                  }))
+                }
+                label={formValues.isNew ? 'New' : 'Not new'}
+              />
+            </Field>
+          </FormRow>
+
           <Field
             label="Description"
             labelFor="scenario-create-description"
@@ -598,6 +695,23 @@ export function ScenarioSection({
                 }))
               }
               rows={3}
+              fullWidth
+            />
+          </Field>
+          <Field
+            label="Short description"
+            labelFor="scenario-create-short-description"
+          >
+            <Textarea
+              id="scenario-create-short-description"
+              value={formValues.shortDescription}
+              onChange={(event) =>
+                setFormValues((prev) => ({
+                  ...prev,
+                  shortDescription: event.target.value,
+                }))
+              }
+              rows={2}
               fullWidth
             />
           </Field>
@@ -719,6 +833,38 @@ export function ScenarioSection({
               </Typography>
             ) : null}
           </div>
+          <FormRow columns={2}>
+            <FileUpload
+              label="Promo image"
+              folder={FileDir.Public}
+              value={promoFile}
+              onChange={(file) => {
+                setPromoFile(file);
+                setFormValues((prev) => ({
+                  ...prev,
+                  promoImgId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
+              }
+            />
+            <FileUpload
+              label="Promo image horizontal"
+              folder={FileDir.Public}
+              value={promoHorizontalFile}
+              onChange={(file) => {
+                setPromoHorizontalFile(file);
+                setFormValues((prev) => ({
+                  ...prev,
+                  promoImgHorizontalId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
+              }
+            />
+          </FormRow>
 
           <div className={s.modalActions}>
             <Button
@@ -791,6 +937,49 @@ export function ScenarioSection({
             </Field>
           </FormRow>
 
+          <FormRow columns={3}>
+            <Field label="Slug" labelFor="scenario-edit-slug">
+              <Input
+                id="scenario-edit-slug"
+                size="sm"
+                value={editValues.slug}
+                onChange={(event) =>
+                  setEditValues((prev) => ({
+                    ...prev,
+                    slug: event.target.value,
+                  }))
+                }
+                fullWidth
+              />
+            </Field>
+            <Field label="Status" labelFor="scenario-edit-is-active">
+              <Switch
+                id="scenario-edit-is-active"
+                checked={editValues.isActive}
+                onChange={(event) =>
+                  setEditValues((prev) => ({
+                    ...prev,
+                    isActive: event.target.checked,
+                  }))
+                }
+                label={editValues.isActive ? 'Active' : 'Inactive'}
+              />
+            </Field>
+            <Field label="New" labelFor="scenario-edit-is-new">
+              <Switch
+                id="scenario-edit-is-new"
+                checked={editValues.isNew}
+                onChange={(event) =>
+                  setEditValues((prev) => ({
+                    ...prev,
+                    isNew: event.target.checked,
+                  }))
+                }
+                label={editValues.isNew ? 'New' : 'Not new'}
+              />
+            </Field>
+          </FormRow>
+
           <Field
             label="Description"
             labelFor="scenario-edit-description"
@@ -806,6 +995,23 @@ export function ScenarioSection({
                 }))
               }
               rows={3}
+              fullWidth
+            />
+          </Field>
+          <Field
+            label="Short description"
+            labelFor="scenario-edit-short-description"
+          >
+            <Textarea
+              id="scenario-edit-short-description"
+              value={editValues.shortDescription}
+              onChange={(event) =>
+                setEditValues((prev) => ({
+                  ...prev,
+                  shortDescription: event.target.value,
+                }))
+              }
+              rows={2}
               fullWidth
             />
           </Field>
@@ -927,6 +1133,38 @@ export function ScenarioSection({
               </Typography>
             ) : null}
           </div>
+          <FormRow columns={2}>
+            <FileUpload
+              label="Promo image"
+              folder={FileDir.Public}
+              value={editPromoFile}
+              onChange={(file) => {
+                setEditPromoFile(file);
+                setEditValues((prev) => ({
+                  ...prev,
+                  promoImgId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
+              }
+            />
+            <FileUpload
+              label="Promo image horizontal"
+              folder={FileDir.Public}
+              value={editPromoHorizontalFile}
+              onChange={(file) => {
+                setEditPromoHorizontalFile(file);
+                setEditValues((prev) => ({
+                  ...prev,
+                  promoImgHorizontalId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
+              }
+            />
+          </FormRow>
 
           <div className={s.modalActions}>
             <Button

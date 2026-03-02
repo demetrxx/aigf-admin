@@ -3,7 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifyError, notifySuccess } from '@/app/toast';
 import type { PlanCreateDto, PlanUpdateDto } from '@/common/types';
 
-import { createPlan, getPlans, type PlansListParams, updatePlan } from './plansApi';
+import {
+  createPlan,
+  deletePlan,
+  getPlans,
+  type PlansListParams,
+  updatePlan,
+} from './plansApi';
 
 const planKeys = {
   list: (params: PlansListParams) => ['plans', params] as const,
@@ -55,6 +61,21 @@ export function useUpdatePlanStatus() {
     },
     onError: (error) => {
       notifyError(error, 'Unable to update the plan.');
+    },
+  });
+}
+
+export function useDeletePlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deletePlan(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      notifySuccess('Plan deleted.', 'Plan deleted.');
+    },
+    onError: (error) => {
+      notifyError(error, 'Unable to delete the plan.');
     },
   });
 }

@@ -1,10 +1,14 @@
 export {
+  useAnalyticsDaily,
+  useAnalyticsDeeplinks,
   useAnalyticsMainRange,
   useAnalyticsMetrics,
   usePaymentsConversionBreakdown,
   usePaymentsRevenueBreakdown,
 } from './queries';
 export type {
+  DailyAnalyticsItem,
+  DeeplinkAnalyticsItem,
   AnalyticsMainRangeResponse,
   AnalyticsMainRow,
   AnalyticsMetricPoint,
@@ -33,6 +37,7 @@ export {
   compareMonthIds,
   diffInMonths,
   formatMonthLabel,
+  getCurrentMonthId,
   getDefaultRange,
   getLastFullMonthId,
   getMonthRange,

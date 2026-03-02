@@ -3,16 +3,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notifyError, notifySuccess } from '@/app/toast';
 import type { UpdateTgUser } from '@/common/types';
 
-import { getUsers, type UsersListParams, updateUser } from './usersApi';
+import { getUsers, updateUser, type UsersListParams } from './usersApi';
 
 const userKeys = {
   list: (params: UsersListParams) => ['users', params] as const,
 };
 
-export function useUsers(params: UsersListParams) {
+export function useUsers(params: UsersListParams, enabled = true) {
   return useQuery({
     queryKey: userKeys.list(params),
     queryFn: () => getUsers(params),
+    enabled,
     placeholderData: (previousData) => previousData,
   });
 }

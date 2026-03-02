@@ -16,16 +16,16 @@ export function AppShell({ children, className }: AppShellProps) {
   const name =
     user?.firstName || user?.lastName
       ? [user?.firstName, user?.lastName].filter(Boolean).join(' ')
-      : (user?.email ?? 'AIgf admin');
+      : (user?.email ?? 'Aera admin');
 
   return (
     <div className={cn(s.page, [className])}>
       <aside className={s.sidebar}>
         <div className={s.brandLogo}>
-          <img src={Logo} alt="AIgf" />
+          <img src={Logo} alt="Aera" />
 
           <Typography variant="h2" className={s.logoText}>
-            AIgf
+            Aera
           </Typography>
         </div>
 

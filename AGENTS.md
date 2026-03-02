@@ -1,7 +1,7 @@
-# AIgf Admin — Project Context
+# Aera Admin — Project Context
 
 ## Overview
-AIgf Admin is an internal SPA for managing the AIgf (ai-girlfriend) product.
+Aera Admin is an internal SPA for managing the Aera (ai-girlfriend) product.
 The app is used by customers and developers for operations, configuration, and support workflows.
 Minimalism and clarity matter more than visual flair.
 
@@ -21,7 +21,7 @@ Minimalism and clarity matter more than visual flair.
 
 ## Auth & Copy
 - Auth flow is already implemented; do not change logic.
-- Replace any remaining Echo text with AIgf Admin copy.
+- Replace any remaining Echo text with Aera Admin copy.
 
 ## Design System
 ### Colors

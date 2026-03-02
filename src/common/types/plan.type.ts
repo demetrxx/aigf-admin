@@ -4,6 +4,11 @@ export enum PlanPeriod {
   Year = 'year',
 }
 
+export interface PlanItem {
+  emoji: string;
+  value: string;
+}
+
 export type PlanCreateDto = {
   code: string;
   period?: PlanPeriod;
@@ -13,11 +18,13 @@ export type PlanCreateDto = {
   air: number;
   isRecommended: boolean;
   type: PlanType;
+  items?: PlanItem[];
 };
 
 export type PlanUpdateDto = {
   isActive: boolean;
   isRecommended: boolean;
+  items?: PlanItem[];
 };
 
 export enum PlanType {
@@ -37,4 +44,5 @@ export interface IPlan {
   createdAt: string;
   updatedAt: string;
   type: PlanType;
+  items?: PlanItem[];
 }

@@ -9,8 +9,10 @@ import {
 import { useGifts } from '@/app/gifts';
 import { PencilLineIcon } from '@/assets/icons';
 import {
+  Badge,
   Button,
   Field,
+  FormRow,
   IconButton,
   Select,
   Stack,
@@ -327,6 +329,12 @@ export function ScenarioDetails({
       <Stack gap="16px">
         <div className={s.detailBlock}>
           <Typography variant="caption" tone="muted">
+            Slug
+          </Typography>
+          <Typography variant="body">{scenario.slug || '-'}</Typography>
+        </div>
+        <div className={s.detailBlock}>
+          <Typography variant="caption" tone="muted">
             Opening image
           </Typography>
           {scenario.openingImage?.url ? (
@@ -353,6 +361,76 @@ export function ScenarioDetails({
             {scenario.description || '-'}
           </Typography>
         </div>
+        <div className={s.detailBlock}>
+          <Typography variant="caption" tone="muted">
+            Short description
+          </Typography>
+          <Typography variant="body" className={s.multiline}>
+            {scenario.shortDescription || '-'}
+          </Typography>
+        </div>
+        <FormRow columns={2}>
+          <div className={s.detailBlock}>
+            <Typography variant="caption" tone="muted">
+              Status
+            </Typography>
+            <div>
+              <Badge tone={scenario.isActive ? 'success' : 'warning'}>
+                {scenario.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+          </div>
+          <div className={s.detailBlock}>
+            <Typography variant="caption" tone="muted">
+              New
+            </Typography>
+            <div>
+              <Badge tone={scenario.isNew ? 'accent' : 'warning'}>
+                {scenario.isNew ? 'New' : 'Not new'}
+              </Badge>
+            </div>
+          </div>
+        </FormRow>
+        <FormRow columns={2}>
+          <div className={s.detailBlock}>
+            <Typography variant="caption" tone="muted">
+              Promo image
+            </Typography>
+            {scenario.promoImg?.url ? (
+              <img
+                className={s.promoImage}
+                src={scenario.promoImg.url}
+                alt={`${scenario.name} promo`}
+                loading="lazy"
+              />
+            ) : (
+              <div className={s.promoImagePlaceholder}>
+                <Typography variant="caption" tone="muted">
+                  No image
+                </Typography>
+              </div>
+            )}
+          </div>
+          <div className={s.detailBlock}>
+            <Typography variant="caption" tone="muted">
+              Promo image horizontal
+            </Typography>
+            {scenario.promoImgHorizontal?.url ? (
+              <img
+                className={s.promoImage}
+                src={scenario.promoImgHorizontal.url}
+                alt={`${scenario.name} promo horizontal`}
+                loading="lazy"
+              />
+            ) : (
+              <div className={s.promoImagePlaceholder}>
+                <Typography variant="caption" tone="muted">
+                  No image
+                </Typography>
+              </div>
+            )}
+          </div>
+        </FormRow>
         <div className={s.detailBlock}>
           <Typography variant="caption" tone="muted">
             Personality

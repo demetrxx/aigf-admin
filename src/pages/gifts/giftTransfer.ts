@@ -4,7 +4,7 @@ import {
   type IGiftDetails,
 } from '@/common/types';
 
-const GIFTS_TRANSFER_SCHEMA = 'aigf-gifts';
+const GIFTS_TRANSFER_SCHEMA = 'aera-gifts';
 const GIFTS_TRANSFER_VERSION = 1;
 
 export type GiftTransferFile = {

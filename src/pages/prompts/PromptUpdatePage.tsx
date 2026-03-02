@@ -29,6 +29,7 @@ import s from './PromptFormPage.module.scss';
 const TYPE_OPTIONS = [
   { label: 'Chat', value: PromptType.Chat },
   { label: 'Image', value: PromptType.Image },
+  { label: 'Ping', value: PromptType.Ping },
 ];
 
 export function PromptUpdatePage() {

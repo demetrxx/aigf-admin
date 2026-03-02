@@ -23,6 +23,7 @@ import s from './PromptFormPage.module.scss';
 const TYPE_OPTIONS = [
   { label: 'Chat', value: PromptType.Chat },
   { label: 'Image', value: PromptType.Image },
+  { label: 'Ping', value: PromptType.Ping },
 ];
 
 export function PromptCreatePage() {
@@ -30,16 +31,14 @@ export function PromptCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreatePrompt();
   const template = (
-    location.state as
-      | {
-          template?: {
-            name: string;
-            text: string;
-            type: PromptType;
-            isActive: boolean;
-          };
-        }
-      | null
+    location.state as {
+      template?: {
+        name: string;
+        text: string;
+        type: PromptType;
+        isActive: boolean;
+      };
+    } | null
   )?.template;
   const initialValues = useMemo(
     () => ({

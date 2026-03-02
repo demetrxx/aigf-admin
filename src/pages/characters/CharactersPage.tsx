@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useCharacters, useCreateCharacter } from '@/app/characters';
-import { notifyError } from '@/app/toast';
 import { useLoras } from '@/app/loras';
+import { notifyError } from '@/app/toast';
 import { PlusIcon } from '@/assets/icons';
 import {
   Alert,
@@ -20,13 +20,14 @@ import {
   Select,
   Skeleton,
   Stack,
+  Switch,
   Table,
   Textarea,
   Typography,
 } from '@/atoms';
+import { FileDir, type IFile } from '@/common/types';
 import { FileUpload } from '@/components/molecules';
 import { AppShell } from '@/components/templates';
-import { FileDir, type IFile } from '@/common/types';
 
 import s from './CharactersPage.module.scss';
 import { LoraSelect } from './components/LoraSelect';
@@ -101,11 +102,14 @@ export function CharactersPage() {
     name: '',
     emoji: '',
     gender: 'female',
+    isFeatured: false,
     loraId: '',
     description: '',
     avatarId: '',
+    promoImgId: '',
   });
   const [avatarFile, setAvatarFile] = useState<IFile | null>(null);
+  const [promoFile, setPromoFile] = useState<IFile | null>(null);
   const [createShowErrors, setCreateShowErrors] = useState(false);
   const [loraSearch, setLoraSearch] = useState('');
   const debouncedLoraSearch = useDebouncedValue(loraSearch, 300);
@@ -305,11 +309,14 @@ export function CharactersPage() {
       name: '',
       emoji: '',
       gender: 'female',
+      isFeatured: false,
       loraId: '',
       description: '',
       avatarId: '',
+      promoImgId: '',
     });
     setAvatarFile(null);
+    setPromoFile(null);
     setCreateShowErrors(false);
     setLoraSearch('');
     setIsCreateOpen(true);
@@ -336,6 +343,8 @@ export function CharactersPage() {
       loraId: createValues.loraId,
       description: createValues.description.trim(),
       avatarId: createValues.avatarId,
+      isFeatured: createValues.isFeatured,
+      promoImgId: createValues.promoImgId || undefined,
     });
     setIsCreateOpen(false);
     if (result?.id) {
@@ -556,6 +565,19 @@ export function CharactersPage() {
                   fullWidth
                 />
               </Field>
+              <Field label="Featured" labelFor="character-create-featured">
+                <Switch
+                  id="character-create-featured"
+                  checked={createValues.isFeatured}
+                  onChange={(event) =>
+                    setCreateValues((prev) => ({
+                      ...prev,
+                      isFeatured: event.target.checked,
+                    }))
+                  }
+                  label={createValues.isFeatured ? 'Featured' : 'Not featured'}
+                />
+              </Field>
             </FormRow>
 
             <Field
@@ -609,6 +631,21 @@ export function CharactersPage() {
               }}
               onError={(message) =>
                 notifyError(new Error(message), 'Unable to upload avatar.')
+              }
+            />
+            <FileUpload
+              label="Promo image"
+              folder={FileDir.Public}
+              value={promoFile}
+              onChange={(file) => {
+                setPromoFile(file);
+                setCreateValues((prev) => ({
+                  ...prev,
+                  promoImgId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
               }
             />
           </Stack>

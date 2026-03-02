@@ -1,8 +1,13 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Cross1Icon } from '@radix-ui/react-icons';
+import type { ChangeEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { isApiRequestError } from '@/app/api/apiErrors';
 import { useCreateDataset, useDatasets } from '@/app/datasets';
+import { markFileUploaded, signUpload } from '@/app/files/filesApi';
+import { notifyError } from '@/app/toast';
 import { PlusIcon } from '@/assets/icons';
 import {
   Alert,
@@ -11,8 +16,8 @@ import {
   EmptyState,
   Field,
   FormRow,
+  IconButton,
   Input,
-  Modal,
   Pagination,
   Select,
   Skeleton,
@@ -21,8 +26,15 @@ import {
   Textarea,
   Typography,
 } from '@/atoms';
-import { DatasetType, type IDatasetDetails } from '@/common/types';
-import { capitalize } from '@/common/utils';
+import {
+  DatasetResolution,
+  DatasetStyle,
+  FileDir,
+  FileStatus,
+  type IDataset,
+  type IFile,
+} from '@/common/types';
+import { Drawer } from '@/components/molecules';
 import { AppShell } from '@/components/templates';
 
 import s from './DatasetsPage.module.scss';
@@ -32,7 +44,15 @@ type QueryUpdate = {
   order?: string;
   page?: number;
   pageSize?: number;
-  type?: string;
+};
+
+type CreateDatasetValues = {
+  name: string;
+  description: string;
+  itemsCount: string;
+  loraTriggerWord: string;
+  resolution: DatasetResolution;
+  style: DatasetStyle;
 };
 
 const ORDER_OPTIONS = [
@@ -42,23 +62,46 @@ const ORDER_OPTIONS = [
 
 const ORDER_VALUES = new Set(ORDER_OPTIONS.map((option) => option.value));
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
+const RESOLUTION_OPTIONS = [
+  { label: 'Low (1K)', value: DatasetResolution.low },
+  { label: 'Medium (2K)', value: DatasetResolution.medium },
+  { label: 'High (4K)', value: DatasetResolution.high },
+];
+const STYLE_OPTIONS = [
+  { label: 'Photorealistic', value: DatasetStyle.Photorealistic },
+  { label: 'Anime', value: DatasetStyle.Anime },
+];
+const DATASET_RESOLUTION_VALUES = new Set(Object.values(DatasetResolution));
+const DATASET_STYLE_VALUES = new Set(Object.values(DatasetStyle));
 const DEFAULT_ORDER = 'DESC';
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TYPE_FILTER = 'all';
 const SEARCH_DEBOUNCE_MS = 400;
+const IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp';
+const ACCEPTED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+]);
+const EXTENSION_TO_MIME = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+} as const;
+const MIN_ITEMS_COUNT = 1;
+const MAX_ITEMS_COUNT = 100;
+const MIN_REF_IMAGES = 1;
+const MAX_REF_IMAGES = 5;
 
-const DATASET_TYPE_OPTIONS = [
-  { label: 'All', value: 'all' },
-  ...Object.values(DatasetType).map((value) => ({
-    label: capitalize(value),
-    value,
-  })),
-];
-
-const CREATE_TYPE_OPTIONS = Object.values(DatasetType).map((value) => ({
-  label: capitalize(value),
-  value,
-}));
+const EMPTY_CREATE_VALUES: CreateDatasetValues = {
+  name: '',
+  description: '',
+  itemsCount: String(MIN_ITEMS_COUNT),
+  loraTriggerWord: '',
+  resolution: DatasetResolution.low,
+  style: DatasetStyle.Photorealistic,
+};
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -83,6 +126,14 @@ function formatDate(value: string | null | undefined) {
   return dateTimeFormatter.format(parsed);
 }
 
+function formatStyle(value: string | null | undefined) {
+  if (!value) return '-';
+  return value
+    .split(/[_-]/g)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function parsePositiveNumber(value: string | null, fallback: number) {
   if (!value) return fallback;
   const parsed = Number(value);
@@ -95,11 +146,74 @@ function parsePageSize(value: string | null) {
   return PAGE_SIZE_OPTIONS.includes(parsed) ? parsed : DEFAULT_PAGE_SIZE;
 }
 
-function resolveTypeFilter(value: string | null) {
-  if (value && Object.values(DatasetType).includes(value as DatasetType)) {
-    return value;
+function parseItemsCount(value: string) {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return null;
+  return parsed;
+}
+
+function getFileExtension(name: string) {
+  const parts = name.split('.');
+  if (parts.length < 2) return '';
+  return parts[parts.length - 1].toLowerCase();
+}
+
+function isAcceptedImageFile(file: File) {
+  if (ACCEPTED_MIME_TYPES.has(file.type)) {
+    return true;
   }
-  return DEFAULT_TYPE_FILTER;
+  const extension = getFileExtension(file.name);
+  return extension in EXTENSION_TO_MIME;
+}
+
+function resolveMimeType(file: File) {
+  if (file.type) {
+    return file.type;
+  }
+  const extension = getFileExtension(file.name);
+  return (
+    EXTENSION_TO_MIME[extension as keyof typeof EXTENSION_TO_MIME] ??
+    'application/octet-stream'
+  );
+}
+
+function resolveUploadErrorMessage(error: unknown) {
+  if (isApiRequestError(error)) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Upload failed.';
+}
+
+async function uploadToPresigned(
+  presigned: { url: string; fields: Record<string, string> },
+  file: File,
+) {
+  const formData = new FormData();
+  Object.entries(presigned.fields).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+  formData.append('file', file);
+
+  const uploadRes = await fetch(presigned.url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Upload failed.');
+  }
+}
+
+function isDatasetResolution(value: string): value is DatasetResolution {
+  return DATASET_RESOLUTION_VALUES.has(value as DatasetResolution);
+}
+
+function isDatasetStyle(value: string): value is DatasetStyle {
+  return DATASET_STYLE_VALUES.has(value as DatasetStyle);
 }
 
 export function DatasetsPage() {
@@ -109,7 +223,6 @@ export function DatasetsPage() {
   const rawOrder = searchParams.get('order');
   const rawPage = searchParams.get('page');
   const rawPageSize = searchParams.get('pageSize');
-  const rawType = searchParams.get('type');
 
   const [searchInput, setSearchInput] = useState(rawSearch);
   const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
@@ -117,18 +230,18 @@ export function DatasetsPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createShowErrors, setCreateShowErrors] = useState(false);
-  const [createValues, setCreateValues] = useState({
-    name: '',
-    type: DatasetType.Character,
-    description: '',
-  });
+  const [createValues, setCreateValues] =
+    useState<CreateDatasetValues>(EMPTY_CREATE_VALUES);
+  const [refImages, setRefImages] = useState<IFile[]>([]);
+  const [isRefImageUploading, setIsRefImageUploading] = useState(false);
+  const [refImageInputKey, setRefImageInputKey] = useState(0);
+  const refImageInputId = useId();
 
   const createMutation = useCreateDataset();
 
   const order = ORDER_VALUES.has(rawOrder ?? '') ? rawOrder! : DEFAULT_ORDER;
   const page = parsePositiveNumber(rawPage, 1);
   const pageSize = parsePageSize(rawPageSize);
-  const typeFilter = resolveTypeFilter(rawType);
 
   const updateSearchParams = useCallback(
     (update: QueryUpdate, replace = false) => {
@@ -167,14 +280,6 @@ export function DatasetsPage() {
         }
       }
 
-      if (update.type !== undefined) {
-        if (update.type && update.type !== DEFAULT_TYPE_FILTER) {
-          next.set('type', update.type);
-        } else {
-          next.delete('type');
-        }
-      }
-
       setSearchParams(next, { replace });
     },
     [searchParams, setSearchParams],
@@ -189,20 +294,19 @@ export function DatasetsPage() {
     updateSearchParams({ search: normalizedSearch, page: 1 }, true);
   }, [normalizedSearch, rawSearch, updateSearchParams]);
 
-  const queryParams = useMemo(() => {
-    const type = typeFilter === 'all' ? undefined : (typeFilter as DatasetType);
-    return {
+  const queryParams = useMemo(
+    () => ({
       search: normalizedSearch || undefined,
       order,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      type,
-    };
-  }, [normalizedSearch, order, page, pageSize, typeFilter]);
+    }),
+    [normalizedSearch, order, page, pageSize],
+  );
 
   const { data, error, isLoading, refetch } = useDatasets(queryParams);
 
-  const datasets = data?.data ?? [];
+  const datasets = useMemo(() => data?.data ?? [], [data]);
   const total = data?.total ?? 0;
   const effectiveTake = data?.take ?? pageSize;
   const effectiveSkip = data?.skip ?? (page - 1) * pageSize;
@@ -218,7 +322,9 @@ export function DatasetsPage() {
   const columns = useMemo(
     () => [
       { key: 'dataset', label: 'Dataset' },
-      { key: 'type', label: 'Type' },
+      { key: 'style', label: 'Style' },
+      { key: 'resolution', label: 'Resolution' },
+      { key: 'items', label: <span className={s.alignRight}>Items</span> },
       { key: 'updated', label: <span className={s.alignRight}>Updated</span> },
     ],
     [],
@@ -233,11 +339,24 @@ export function DatasetsPage() {
             <Typography variant="caption" tone="muted">
               {dataset.id}
             </Typography>
+            <Typography variant="caption" tone="muted">
+              {dataset.loraTriggerWord || '-'}
+            </Typography>
           </div>
         ),
-        type: (
+        style: (
           <Typography variant="body" tone="muted">
-            {capitalize(dataset.type)}
+            {formatStyle(dataset.style)}
+          </Typography>
+        ),
+        resolution: (
+          <Typography variant="body" tone="muted">
+            {dataset.resolution || '-'}
+          </Typography>
+        ),
+        items: (
+          <Typography variant="caption" tone="muted" className={s.alignRight}>
+            {dataset.itemsCount.toLocaleString()}
           </Typography>
         ),
         updated: (
@@ -258,7 +377,13 @@ export function DatasetsPage() {
             <Skeleton width={120} height={10} />
           </div>
         ),
-        type: <Skeleton width={80} height={12} />,
+        style: <Skeleton width={90} height={12} />,
+        resolution: <Skeleton width={90} height={12} />,
+        items: (
+          <div className={s.alignRight}>
+            <Skeleton width={48} height={12} />
+          </div>
+        ),
         updated: (
           <div className={s.alignRight}>
             <Skeleton width={120} height={12} />
@@ -277,29 +402,100 @@ export function DatasetsPage() {
   const rangeEnd =
     total === 0 ? 0 : Math.min(effectiveSkip + effectiveTake, total);
 
+  const refImageIds = useMemo(
+    () => refImages.map((file) => file.id),
+    [refImages],
+  );
+  const parsedItemsCount = parseItemsCount(createValues.itemsCount);
+
   const createValidationErrors = useMemo(() => {
     if (!createShowErrors) return {};
-    const errors: { name?: string; type?: string } = {};
+    const errors: {
+      name?: string;
+      description?: string;
+      itemsCount?: string;
+      loraTriggerWord?: string;
+      style?: string;
+      resolution?: string;
+      refImgIds?: string;
+    } = {};
+
     if (!createValues.name.trim()) {
       errors.name = 'Enter a name.';
     }
-    if (!createValues.type) {
-      errors.type = 'Select a type.';
+
+    if (!createValues.description.trim()) {
+      errors.description = 'Enter a description.';
     }
+
+    if (
+      parsedItemsCount === null ||
+      parsedItemsCount < MIN_ITEMS_COUNT ||
+      parsedItemsCount > MAX_ITEMS_COUNT
+    ) {
+      errors.itemsCount = `Enter a value between ${MIN_ITEMS_COUNT} and ${MAX_ITEMS_COUNT}.`;
+    }
+
+    if (!createValues.loraTriggerWord.trim()) {
+      errors.loraTriggerWord = 'Enter a LoRA trigger word.';
+    }
+
+    if (!isDatasetStyle(createValues.style)) {
+      errors.style = 'Select a style.';
+    }
+
+    if (!isDatasetResolution(createValues.resolution)) {
+      errors.resolution = 'Select a resolution.';
+    }
+
+    if (
+      refImageIds.length < MIN_REF_IMAGES ||
+      refImageIds.length > MAX_REF_IMAGES
+    ) {
+      errors.refImgIds = `Upload ${MIN_REF_IMAGES}-${MAX_REF_IMAGES} reference images.`;
+    }
+
     return errors;
-  }, [createShowErrors, createValues.name, createValues.type]);
+  }, [
+    createShowErrors,
+    createValues.name,
+    createValues.description,
+    parsedItemsCount,
+    createValues.loraTriggerWord,
+    createValues.style,
+    createValues.resolution,
+    refImageIds.length,
+  ]);
 
   const createIsValid = useMemo(
-    () => Boolean(createValues.name.trim() && createValues.type),
-    [createValues.name, createValues.type],
+    () =>
+      Boolean(
+        createValues.name.trim() &&
+        createValues.description.trim() &&
+        createValues.loraTriggerWord.trim() &&
+        isDatasetStyle(createValues.style) &&
+        isDatasetResolution(createValues.resolution) &&
+        parsedItemsCount !== null &&
+        parsedItemsCount >= MIN_ITEMS_COUNT &&
+        parsedItemsCount <= MAX_ITEMS_COUNT &&
+        refImageIds.length >= MIN_REF_IMAGES &&
+        refImageIds.length <= MAX_REF_IMAGES,
+      ),
+    [
+      createValues.name,
+      createValues.description,
+      createValues.loraTriggerWord,
+      createValues.style,
+      createValues.resolution,
+      parsedItemsCount,
+      refImageIds.length,
+    ],
   );
 
   const openCreateModal = () => {
-    setCreateValues({
-      name: '',
-      type: DatasetType.Character,
-      description: '',
-    });
+    setCreateValues(EMPTY_CREATE_VALUES);
+    setRefImages([]);
+    setRefImageInputKey((prev) => prev + 1);
     setCreateShowErrors(false);
     setIsCreateOpen(true);
   };
@@ -309,28 +505,126 @@ export function DatasetsPage() {
     setIsCreateOpen(false);
   };
 
-  const handleCreate = async () => {
-    const errors = {
-      name: createValues.name.trim() ? undefined : 'Enter a name.',
-      type: createValues.type ? undefined : 'Select a type.',
-    };
-    if (errors.name || errors.type) {
-      setCreateShowErrors(true);
+  const removeRefImage = (id: string) => {
+    setRefImages((prev) => prev.filter((file) => file.id !== id));
+  };
+
+  const handleAddRefImageClick = () => {
+    if (
+      isRefImageUploading ||
+      createMutation.isPending ||
+      refImages.length >= MAX_REF_IMAGES
+    ) {
       return;
     }
-    const result = await createMutation.mutateAsync({
-      name: createValues.name.trim(),
-      type: createValues.type,
-      description: createValues.description.trim() || undefined,
-    });
-    setIsCreateOpen(false);
-    if (result?.id) {
-      navigate(`/datasets/${result.id}`, { state: { dataset: result } });
+
+    const element = document.getElementById(refImageInputId);
+    if (element instanceof HTMLInputElement) {
+      element.click();
     }
   };
 
-  const openDetails = (dataset: IDatasetDetails) => {
-    navigate(`/datasets/${dataset.id}`, { state: { dataset } });
+  const handleRefImageFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    setRefImageInputKey((prev) => prev + 1);
+
+    if (!file) return;
+    if (refImages.length >= MAX_REF_IMAGES || isRefImageUploading) return;
+
+    if (!isAcceptedImageFile(file)) {
+      notifyError(
+        new Error('Only PNG, JPG, JPEG, or WEBP files are allowed.'),
+        'Unable to upload reference image.',
+      );
+      return;
+    }
+
+    try {
+      setIsRefImageUploading(true);
+      const mime = resolveMimeType(file);
+      const { presigned, file: signedFile } = await signUpload({
+        fileName: file.name,
+        mime,
+        folder: FileDir.Public,
+      });
+
+      await uploadToPresigned(presigned, file);
+      const success = await markFileUploaded(signedFile.id);
+      if (!success) {
+        throw new Error('Unable to finalize upload.');
+      }
+
+      setRefImages((prev) => [
+        ...prev,
+        { ...signedFile, status: FileStatus.UPLOADED },
+      ]);
+    } catch (error) {
+      const message = resolveUploadErrorMessage(error);
+      notifyError(new Error(message), 'Unable to upload reference image.');
+    } finally {
+      setIsRefImageUploading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    const errors = {
+      name: createValues.name.trim() ? undefined : 'Enter a name.',
+      description: createValues.description.trim()
+        ? undefined
+        : 'Enter a description.',
+      itemsCount:
+        parsedItemsCount !== null &&
+        parsedItemsCount >= MIN_ITEMS_COUNT &&
+        parsedItemsCount <= MAX_ITEMS_COUNT
+          ? undefined
+          : `Enter a value between ${MIN_ITEMS_COUNT} and ${MAX_ITEMS_COUNT}.`,
+      loraTriggerWord: createValues.loraTriggerWord.trim()
+        ? undefined
+        : 'Enter a LoRA trigger word.',
+      style: isDatasetStyle(createValues.style) ? undefined : 'Select a style.',
+      resolution: isDatasetResolution(createValues.resolution)
+        ? undefined
+        : 'Select a resolution.',
+      refImgIds:
+        refImageIds.length >= MIN_REF_IMAGES &&
+        refImageIds.length <= MAX_REF_IMAGES
+          ? undefined
+          : `Upload ${MIN_REF_IMAGES}-${MAX_REF_IMAGES} reference images.`,
+    };
+
+    if (
+      errors.name ||
+      errors.description ||
+      errors.itemsCount ||
+      errors.loraTriggerWord ||
+      errors.style ||
+      errors.resolution ||
+      errors.refImgIds
+    ) {
+      setCreateShowErrors(true);
+      return;
+    }
+
+    const result = await createMutation.mutateAsync({
+      name: createValues.name.trim(),
+      description: createValues.description.trim(),
+      itemsCount: parsedItemsCount!,
+      loraTriggerWord: createValues.loraTriggerWord.trim(),
+      style: createValues.style,
+      resolution: createValues.resolution,
+      refImgIds: refImageIds,
+    });
+
+    setIsCreateOpen(false);
+    if (result?.id) {
+      navigate(`/datasets/${result.id}`);
+    }
+  };
+
+  const openDetails = (dataset: IDataset) => {
+    navigate(`/datasets/${dataset.id}`);
   };
 
   return (
@@ -354,23 +648,11 @@ export function DatasetsPage() {
             >
               <Input
                 id="datasets-search"
-                placeholder="Search by name"
+                placeholder="Search by name or trigger word"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 iconLeft={<MagnifyingGlassIcon />}
                 fullWidth
-              />
-            </Field>
-            <Field label="Type" labelFor="datasets-type">
-              <Select
-                id="datasets-type"
-                options={DATASET_TYPE_OPTIONS}
-                value={typeFilter}
-                size="sm"
-                variant="ghost"
-                onChange={(value) =>
-                  updateSearchParams({ type: value, page: 1 })
-                }
               />
             </Field>
             <Field label="Order" labelFor="datasets-order">
@@ -478,34 +760,17 @@ export function DatasetsPage() {
         ) : null}
       </Container>
 
-      <Modal
+      <Drawer
         open={isCreateOpen}
         title="New dataset"
-        onClose={closeCreateModal}
-        actions={
-          <div className={s.modalActions}>
-            <Button
-              variant="secondary"
-              onClick={closeCreateModal}
-              disabled={createMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              loading={createMutation.isPending}
-              disabled={
-                !createIsValid ||
-                createMutation.isPending ||
-                Boolean(
-                  createValidationErrors.name || createValidationErrors.type,
-                )
-              }
-            >
-              Create
-            </Button>
-          </div>
-        }
+        className={s.createDrawer}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeCreateModal();
+          } else {
+            setIsCreateOpen(true);
+          }
+        }}
       >
         <Stack gap="16px">
           <FormRow columns={2}>
@@ -529,19 +794,63 @@ export function DatasetsPage() {
               />
             </Field>
             <Field
-              label="Type"
-              labelFor="dataset-create-type"
-              error={createValidationErrors.type}
+              label="Items count"
+              labelFor="dataset-create-items-count"
+              error={createValidationErrors.itemsCount}
+            >
+              <Input
+                id="dataset-create-items-count"
+                type="number"
+                min={MIN_ITEMS_COUNT}
+                max={MAX_ITEMS_COUNT}
+                size="sm"
+                value={createValues.itemsCount}
+                onChange={(event) =>
+                  setCreateValues((prev) => ({
+                    ...prev,
+                    itemsCount: event.target.value,
+                  }))
+                }
+                placeholder={String(MIN_ITEMS_COUNT)}
+                fullWidth
+              />
+            </Field>
+          </FormRow>
+
+          <FormRow columns={2}>
+            <Field
+              label="LoRA trigger word"
+              labelFor="dataset-create-lora-trigger-word"
+              error={createValidationErrors.loraTriggerWord}
+            >
+              <Input
+                id="dataset-create-lora-trigger-word"
+                size="sm"
+                value={createValues.loraTriggerWord}
+                onChange={(event) =>
+                  setCreateValues((prev) => ({
+                    ...prev,
+                    loraTriggerWord: event.target.value,
+                  }))
+                }
+                placeholder="char123"
+                fullWidth
+              />
+            </Field>
+            <Field
+              label="Resolution"
+              labelFor="dataset-create-resolution"
+              error={createValidationErrors.resolution}
             >
               <Select
-                id="dataset-create-type"
+                id="dataset-create-resolution"
                 size="sm"
-                options={CREATE_TYPE_OPTIONS}
-                value={createValues.type}
+                options={RESOLUTION_OPTIONS}
+                value={createValues.resolution}
                 onChange={(value) =>
                   setCreateValues((prev) => ({
                     ...prev,
-                    type: value as DatasetType,
+                    resolution: value as DatasetResolution,
                   }))
                 }
                 fullWidth
@@ -549,7 +858,31 @@ export function DatasetsPage() {
             </Field>
           </FormRow>
 
-          <Field label="Description" labelFor="dataset-create-description">
+          <Field
+            label="Style"
+            labelFor="dataset-create-style"
+            error={createValidationErrors.style}
+          >
+            <Select
+              id="dataset-create-style"
+              size="sm"
+              options={STYLE_OPTIONS}
+              value={createValues.style}
+              onChange={(value) =>
+                setCreateValues((prev) => ({
+                  ...prev,
+                  style: value as DatasetStyle,
+                }))
+              }
+              fullWidth
+            />
+          </Field>
+
+          <Field
+            label="Description"
+            labelFor="dataset-create-description"
+            error={createValidationErrors.description}
+          >
             <Textarea
               id="dataset-create-description"
               value={createValues.description}
@@ -559,13 +892,119 @@ export function DatasetsPage() {
                   description: event.target.value,
                 }))
               }
-              placeholder="Optional description"
+              placeholder="Young woman, casual everyday style"
               rows={4}
               fullWidth
             />
           </Field>
+
+          <Field
+            label="Reference images"
+            hint={`${refImageIds.length}/${MAX_REF_IMAGES} uploaded`}
+            error={createValidationErrors.refImgIds}
+          >
+            <Stack gap="12px">
+              <div className={s.refImageActions}>
+                <IconButton
+                  aria-label="Add reference image"
+                  tooltip="Add reference image"
+                  variant="secondary"
+                  size="sm"
+                  icon={<PlusIcon />}
+                  onClick={handleAddRefImageClick}
+                  disabled={
+                    createMutation.isPending ||
+                    isRefImageUploading ||
+                    refImages.length >= MAX_REF_IMAGES
+                  }
+                />
+                <Typography variant="meta" tone="muted">
+                  {isRefImageUploading ? 'Uploading image...' : `Add reference`}
+                </Typography>
+              </div>
+
+              {refImages.length === 0 ? (
+                <div className={s.refImageEmpty}>
+                  <Typography variant="caption" tone="muted">
+                    No images uploaded yet.
+                  </Typography>
+                </div>
+              ) : (
+                <div className={s.refImageGrid}>
+                  {refImages.map((file) => (
+                    <div key={file.id} className={s.refImageCard}>
+                      <div className={s.refImagePreview}>
+                        {file.url ? (
+                          <img
+                            className={s.refImageImage}
+                            src={file.url}
+                            alt={file.name}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Typography variant="caption" tone="muted">
+                            No preview
+                          </Typography>
+                        )}
+                        <div className={s.refImageCardActions}>
+                          <IconButton
+                            aria-label="Remove reference image"
+                            tooltip="Remove"
+                            variant="ghost"
+                            tone="danger"
+                            size="sm"
+                            icon={<Cross1Icon />}
+                            onClick={() => removeRefImage(file.id)}
+                          />
+                        </div>
+                      </div>
+                      <Typography
+                        variant="caption"
+                        tone="muted"
+                        className={s.refImageName}
+                      >
+                        {file.name}
+                      </Typography>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Input
+                key={refImageInputKey}
+                id={refImageInputId}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                onChange={handleRefImageFileChange}
+                disabled={
+                  createMutation.isPending ||
+                  isRefImageUploading ||
+                  refImages.length >= MAX_REF_IMAGES
+                }
+                wrapperClassName={s.hiddenInputWrapper}
+                className={s.hiddenInput}
+              />
+            </Stack>
+          </Field>
+
+          <div className={s.modalActions}>
+            <Button
+              variant="secondary"
+              onClick={closeCreateModal}
+              disabled={createMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              loading={createMutation.isPending}
+              disabled={!createIsValid || createMutation.isPending}
+            >
+              Create
+            </Button>
+          </div>
         </Stack>
-      </Modal>
+      </Drawer>
     </AppShell>
   );
 }

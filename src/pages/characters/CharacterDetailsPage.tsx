@@ -98,12 +98,15 @@ export function CharacterDetailsPage() {
     emoji: '',
     gender: '',
     isActive: true,
+    isFeatured: false,
     loraId: '',
     description: '',
     avatarId: '',
+    promoImgId: '',
   });
   const [initialValues, setInitialValues] = useState(formValues);
   const [avatarFile, setAvatarFile] = useState<IFile | null>(null);
+  const [promoFile, setPromoFile] = useState<IFile | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [loraSearch, setLoraSearch] = useState('');
   const debouncedLoraSearch = useDebouncedValue(loraSearch, 300);
@@ -152,9 +155,11 @@ export function CharacterDetailsPage() {
       formValues.emoji !== initialValues.emoji ||
       formValues.gender !== initialValues.gender ||
       formValues.isActive !== initialValues.isActive ||
+      formValues.isFeatured !== initialValues.isFeatured ||
       formValues.loraId !== initialValues.loraId ||
       formValues.description !== initialValues.description ||
-      formValues.avatarId !== initialValues.avatarId,
+      formValues.avatarId !== initialValues.avatarId ||
+      formValues.promoImgId !== initialValues.promoImgId,
     [formValues, initialValues],
   );
 
@@ -165,13 +170,16 @@ export function CharacterDetailsPage() {
       emoji: data.emoji ?? '',
       gender: data.gender ?? '',
       isActive: data.isActive,
+      isFeatured: Boolean(data.isFeatured),
       loraId: data.lora?.id ?? '',
       description: data.description ?? '',
       avatarId: data.avatar?.id ?? '',
+      promoImgId: data.promoImg?.id ?? '',
     };
     setFormValues(nextValues);
     setInitialValues(nextValues);
     setAvatarFile(data.avatar ?? null);
+    setPromoFile(data.promoImg ?? null);
     setShowErrors(false);
     setLoraSearch('');
     setIsEditOpen(true);
@@ -199,9 +207,11 @@ export function CharacterDetailsPage() {
         emoji: formValues.emoji.trim(),
         gender: formValues.gender.trim(),
         isActive: formValues.isActive,
+        isFeatured: formValues.isFeatured,
         loraId: formValues.loraId,
         description: formValues.description.trim(),
         avatarId: formValues.avatarId,
+        promoImgId: formValues.promoImgId || undefined,
       },
     });
     setIsEditOpen(false);
@@ -322,7 +332,7 @@ export function CharacterDetailsPage() {
               </Field>
             </FormRow>
 
-            <FormRow columns={2}>
+            <FormRow columns={3}>
               <Field label="Gender" labelFor="character-edit-gender">
                 <Select
                   id="character-edit-gender"
@@ -349,6 +359,19 @@ export function CharacterDetailsPage() {
                     }))
                   }
                   label={formValues.isActive ? 'Active' : 'Inactive'}
+                />
+              </Field>
+              <Field label="Featured" labelFor="character-edit-featured">
+                <Switch
+                  id="character-edit-featured"
+                  checked={formValues.isFeatured}
+                  onChange={(event) =>
+                    setFormValues((prev) => ({
+                      ...prev,
+                      isFeatured: event.target.checked,
+                    }))
+                  }
+                  label={formValues.isFeatured ? 'Featured' : 'Not featured'}
                 />
               </Field>
             </FormRow>
@@ -404,6 +427,21 @@ export function CharacterDetailsPage() {
               }}
               onError={(message) =>
                 notifyError(new Error(message), 'Unable to upload avatar.')
+              }
+            />
+            <FileUpload
+              label="Promo image"
+              folder={FileDir.Public}
+              value={promoFile}
+              onChange={(file) => {
+                setPromoFile(file);
+                setFormValues((prev) => ({
+                  ...prev,
+                  promoImgId: file?.id ?? '',
+                }));
+              }}
+              onError={(message) =>
+                notifyError(new Error(message), 'Unable to upload image.')
               }
             />
           </Stack>

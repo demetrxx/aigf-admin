@@ -7,7 +7,7 @@ import {
   STAGES_IN_ORDER,
 } from '@/common/types';
 
-const SCENARIO_TRANSFER_SCHEMA = 'aigf-scenario';
+const SCENARIO_TRANSFER_SCHEMA = 'aera-scenario';
 const SCENARIO_TRANSFER_VERSION = 1;
 
 type ScenarioTransferCharacter = {
@@ -37,6 +37,11 @@ type ScenarioTransferScenario = {
   name: string;
   emoji: string;
   description: string;
+  isActive: boolean;
+  shortDescription: string;
+  isNew: boolean;
+  promoImg?: ScenarioTransferFile;
+  promoImgHorizontal?: ScenarioTransferFile;
   personality: string;
   messagingStyle: string;
   appearance: string;
@@ -87,6 +92,13 @@ function ensureNonEmptyString(value: unknown, path: string) {
   return parsed;
 }
 
+function ensureBoolean(value: unknown, path: string) {
+  if (typeof value !== 'boolean') {
+    throw new Error(`Invalid import file: "${path}" must be a boolean.`);
+  }
+  return value;
+}
+
 function ensureStage(value: unknown, path: string): RoleplayStage {
   const stage = ensureString(value, path);
   if (!STAGES_IN_ORDER.includes(stage as RoleplayStage)) {
@@ -114,6 +126,18 @@ function sanitizeStageDirectives(
     goal: sanitizeString(value?.goal),
     escalationTrigger: sanitizeString(value?.escalationTrigger),
   };
+}
+
+function hasTransferFileShape(value: unknown): value is ScenarioTransferFile {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.dir === 'string' &&
+    typeof value.path === 'string' &&
+    typeof value.status === 'string' &&
+    typeof value.mime === 'string'
+  );
 }
 
 function parseStageDirectives(value: unknown, path: string): StageDirectives {
@@ -245,6 +269,31 @@ export function buildScenarioTransferPayload({
       name: sanitizeString(scenario.name),
       emoji: sanitizeString(scenario.emoji),
       description: sanitizeString(scenario.description),
+      isActive: Boolean(scenario.isActive),
+      shortDescription: sanitizeString(scenario.shortDescription),
+      isNew: Boolean(scenario.isNew),
+      promoImg: hasTransferFileShape(scenario.promoImg)
+        ? {
+            id: scenario.promoImg.id,
+            name: scenario.promoImg.name,
+            dir: scenario.promoImg.dir,
+            path: scenario.promoImg.path,
+            status: scenario.promoImg.status,
+            mime: scenario.promoImg.mime,
+            url: scenario.promoImg.url ?? undefined,
+          }
+        : undefined,
+      promoImgHorizontal: hasTransferFileShape(scenario.promoImgHorizontal)
+        ? {
+            id: scenario.promoImgHorizontal.id,
+            name: scenario.promoImgHorizontal.name,
+            dir: scenario.promoImgHorizontal.dir,
+            path: scenario.promoImgHorizontal.path,
+            status: scenario.promoImgHorizontal.status,
+            mime: scenario.promoImgHorizontal.mime,
+            url: scenario.promoImgHorizontal.url ?? undefined,
+          }
+        : undefined,
       personality: sanitizeString(scenario.personality),
       messagingStyle: sanitizeString(scenario.messagingStyle),
       appearance: sanitizeString(scenario.appearance),
@@ -377,6 +426,27 @@ export async function parseScenarioTransferFile(file: File) {
         scenarioObj.description,
         'scenario.description',
       ),
+      isActive:
+        scenarioObj.isActive === undefined
+          ? true
+          : ensureBoolean(scenarioObj.isActive, 'scenario.isActive'),
+      shortDescription: ensureString(
+        scenarioObj.shortDescription ?? '',
+        'scenario.shortDescription',
+      ),
+      isNew:
+        scenarioObj.isNew === undefined
+          ? false
+          : ensureBoolean(scenarioObj.isNew, 'scenario.isNew'),
+      promoImg: scenarioObj.promoImg
+        ? parseTransferFile(scenarioObj.promoImg, 'scenario.promoImg')
+        : undefined,
+      promoImgHorizontal: scenarioObj.promoImgHorizontal
+        ? parseTransferFile(
+            scenarioObj.promoImgHorizontal,
+            'scenario.promoImgHorizontal',
+          )
+        : undefined,
       personality: ensureString(
         scenarioObj.personality,
         'scenario.personality',

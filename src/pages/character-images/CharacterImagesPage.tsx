@@ -1,25 +1,26 @@
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { Cross1Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   type ChangeEvent,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { isApiRequestError } from '@/app/api/apiErrors';
 import {
   createCharacterImage as createCharacterImageApi,
   getCharacterImageDetails,
   getCharacterImages,
   useCharacterImages,
-  useCreateCharacterImage,
 } from '@/app/character-images';
 import { useCharacterDetails, useCharacters } from '@/app/characters';
 import { getCharacterDetails, getCharacters } from '@/app/characters/charactersApi';
-import { copyFile } from '@/app/files/filesApi';
+import { copyFile, markFileUploaded, signUpload } from '@/app/files/filesApi';
 import { notifyError, notifySuccess } from '@/app/toast';
 import { DownloadIcon, PlusIcon, UploadIcon } from '@/assets/icons';
 import {
@@ -44,12 +45,13 @@ import {
 } from '@/atoms';
 import {
   FileDir,
+  FileStatus,
   type ICharacterDetails,
   type IFile,
   RoleplayStage,
   STAGES_IN_ORDER,
 } from '@/common/types';
-import { Drawer, FileUpload } from '@/components/molecules';
+import { Drawer } from '@/components/molecules';
 import { AppShell } from '@/components/templates';
 import { SearchSelect } from '@/pages/generations/components/SearchSelect';
 
@@ -74,6 +76,15 @@ type QueryUpdate = {
   stage?: string;
 };
 
+type CreateImageUploadItem = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  status: 'uploading' | 'uploaded' | 'error';
+  uploadedFile: IFile | null;
+  message?: string;
+};
+
 const ORDER_OPTIONS = [
   { label: 'Ascending', value: 'ASC' },
   { label: 'Descending', value: 'DESC' },
@@ -87,6 +98,19 @@ const DEFAULT_PREG_FILTER = 'true';
 const DEFAULT_PROMO_FILTER = 'all';
 const DEFAULT_STAGE_FILTER = 'all';
 const SEARCH_DEBOUNCE_MS = 400;
+const IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp';
+const ACCEPTED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+]);
+const EXTENSION_TO_MIME = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+} as const;
 
 const PREG_FILTER_OPTIONS = [
   { label: 'Pregenerated', value: 'true' },
@@ -166,6 +190,80 @@ function formatStage(value: RoleplayStage | null | undefined) {
 
 function normalizeEntityName(value: string) {
   return value.trim();
+}
+
+function getFileExtension(name: string) {
+  const parts = name.split('.');
+  if (parts.length < 2) return '';
+  return parts[parts.length - 1].toLowerCase();
+}
+
+function isAcceptedImageFile(file: File) {
+  if (ACCEPTED_MIME_TYPES.has(file.type)) {
+    return true;
+  }
+  const extension = getFileExtension(file.name);
+  return extension in EXTENSION_TO_MIME;
+}
+
+function resolveMimeType(file: File) {
+  if (file.type) {
+    return file.type;
+  }
+  const extension = getFileExtension(file.name);
+  return (
+    EXTENSION_TO_MIME[extension as keyof typeof EXTENSION_TO_MIME] ??
+    'application/octet-stream'
+  );
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function resolveErrorMessage(error: unknown) {
+  if (isApiRequestError(error)) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Request failed.';
+}
+
+function createUploadItemId() {
+  if (
+    typeof window !== 'undefined' &&
+    window.crypto &&
+    typeof window.crypto.randomUUID === 'function'
+  ) {
+    return window.crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function uploadToPresigned(
+  presigned: { url: string; fields: Record<string, string> },
+  file: File,
+) {
+  const formData = new FormData();
+  Object.entries(presigned.fields).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+  formData.append('file', file);
+
+  const uploadRes = await fetch(presigned.url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error('Upload failed.');
+  }
 }
 
 export function CharacterImagesPage() {
@@ -358,9 +456,8 @@ export function CharacterImagesPage() {
   ]);
 
   const { data, error, isLoading, refetch } = useCharacterImages(queryParams);
-  const createMutation = useCreateCharacterImage();
 
-  const images = data?.data ?? [];
+  const images = useMemo(() => data?.data ?? [], [data?.data]);
   const total = data?.total ?? 0;
   const effectiveTake = data?.take ?? pageSize;
   const effectiveSkip = data?.skip ?? (page - 1) * pageSize;
@@ -547,16 +644,30 @@ export function CharacterImagesPage() {
     total === 0 ? 0 : Math.min(effectiveSkip + effectiveTake, total);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [createValues, setCreateValues] = useState({
     characterId: '',
     scenarioId: '',
     stage: '' as RoleplayStage | '',
     description: '',
     isPromotional: false,
-    fileId: '',
   });
-  const [mainFile, setMainFile] = useState<IFile | null>(null);
+  const [createFiles, setCreateFiles] = useState<CreateImageUploadItem[]>([]);
+  const createFilesInputId = useId();
+  const [createFilesInputKey, setCreateFilesInputKey] = useState(0);
   const [createShowErrors, setCreateShowErrors] = useState(false);
+  const isUploadingFiles = useMemo(
+    () => createFiles.some((item) => item.status === 'uploading'),
+    [createFiles],
+  );
+  const uploadedCreateFiles = useMemo(
+    () =>
+      createFiles.filter(
+        (item) => item.status === 'uploaded' && Boolean(item.uploadedFile?.id),
+      ),
+    [createFiles],
+  );
+  const isCreateBusy = isCreating || isUploadingFiles;
   const { data: selectedCharacterDetails } = useCharacterDetails(
     createValues.characterId || null,
   );
@@ -586,15 +697,16 @@ export function CharacterImagesPage() {
       stage: '',
       description: '',
       isPromotional: false,
-      fileId: '',
     });
-    setMainFile(null);
+    setCreateFiles([]);
+    setCreateFilesInputKey((prev) => prev + 1);
     setCreateShowErrors(false);
+    setIsCreating(false);
     setIsDrawerOpen(true);
   };
 
   const closeCreateDrawer = () => {
-    if (createMutation.isPending) return;
+    if (isCreateBusy) return;
     setIsDrawerOpen(false);
   };
 
@@ -605,7 +717,7 @@ export function CharacterImagesPage() {
       scenarioId?: string;
       stage?: string;
       description?: string;
-      fileId?: string;
+      files?: string;
     } = {};
     if (!createValues.characterId) {
       errors.characterId = 'Select a character.';
@@ -619,8 +731,10 @@ export function CharacterImagesPage() {
     if (!createValues.description.trim()) {
       errors.description = 'Enter a description.';
     }
-    if (!createValues.fileId) {
-      errors.fileId = 'Upload an image.';
+    if (uploadedCreateFiles.length === 0) {
+      errors.files = isUploadingFiles
+        ? 'Wait for uploads to finish.'
+        : 'Upload at least one image.';
     }
     return errors;
   }, [
@@ -629,7 +743,8 @@ export function CharacterImagesPage() {
     createValues.scenarioId,
     createValues.stage,
     createValues.description,
-    createValues.fileId,
+    isUploadingFiles,
+    uploadedCreateFiles.length,
   ]);
 
   const createIsValid = useMemo(
@@ -639,16 +754,115 @@ export function CharacterImagesPage() {
         createValues.scenarioId &&
         createValues.stage &&
         createValues.description.trim() &&
-        createValues.fileId,
+        !isUploadingFiles &&
+        uploadedCreateFiles.length > 0,
       ),
     [
       createValues.characterId,
       createValues.scenarioId,
       createValues.stage,
       createValues.description,
-      createValues.fileId,
+      isUploadingFiles,
+      uploadedCreateFiles.length,
     ],
   );
+
+  const updateCreateFile = useCallback(
+    (
+      id: string,
+      updater: (item: CreateImageUploadItem) => CreateImageUploadItem,
+    ) => {
+      setCreateFiles((prev) =>
+        prev.map((item) => (item.id === id ? updater(item) : item)),
+      );
+    },
+    [],
+  );
+
+  const handleAddCreateFilesClick = () => {
+    if (isCreateBusy) return;
+    const element = document.getElementById(createFilesInputId);
+    if (element instanceof HTMLInputElement) {
+      element.click();
+    }
+  };
+
+  const handleCreateFilesChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    setCreateFilesInputKey((prev) => prev + 1);
+
+    if (files.length === 0 || isCreateBusy) {
+      return;
+    }
+
+    const queuedItems = files.map((file) => ({
+      id: createUploadItemId(),
+      fileName: file.name,
+      fileSize: file.size,
+      status: 'uploading',
+      uploadedFile: null,
+    })) satisfies CreateImageUploadItem[];
+    setCreateFiles((prev) => [...prev, ...queuedItems]);
+
+    let failedUploads = 0;
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const queuedItem = queuedItems[index];
+      if (!queuedItem) continue;
+
+      if (!isAcceptedImageFile(file)) {
+        failedUploads += 1;
+        updateCreateFile(queuedItem.id, (item) => ({
+          ...item,
+          status: 'error',
+          message: 'Only PNG, JPG, JPEG, or WEBP files are allowed.',
+        }));
+        continue;
+      }
+
+      try {
+        const mime = resolveMimeType(file);
+        const { presigned, file: signedFile } = await signUpload({
+          fileName: file.name,
+          mime,
+          folder: FileDir.Public,
+        });
+
+        await uploadToPresigned(presigned, file);
+        const success = await markFileUploaded(signedFile.id);
+        if (!success) {
+          throw new Error('Unable to finalize upload.');
+        }
+
+        updateCreateFile(queuedItem.id, (item) => ({
+          ...item,
+          status: 'uploaded',
+          uploadedFile: { ...signedFile, status: FileStatus.UPLOADED },
+          message: undefined,
+        }));
+      } catch (error) {
+        failedUploads += 1;
+        updateCreateFile(queuedItem.id, (item) => ({
+          ...item,
+          status: 'error',
+          message: resolveErrorMessage(error),
+        }));
+      }
+    }
+
+    if (failedUploads > 0) {
+      const failedLabel = failedUploads === 1 ? 'file failed' : 'files failed';
+      notifyError(
+        new Error(`${failedUploads} ${failedLabel} to upload.`),
+        'Unable to upload some images.',
+      );
+    }
+  };
+
+  const handleRemoveCreateFile = (id: string) => {
+    if (isCreating) return;
+    setCreateFiles((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const handleCreate = async () => {
     const errors = {
@@ -658,28 +872,85 @@ export function CharacterImagesPage() {
       description: createValues.description.trim()
         ? undefined
         : 'Enter a description.',
-      fileId: createValues.fileId ? undefined : 'Upload an image.',
+      files:
+        uploadedCreateFiles.length > 0
+          ? undefined
+          : isUploadingFiles
+            ? 'Wait for uploads to finish.'
+            : 'Upload at least one image.',
     };
     if (
       errors.characterId ||
       errors.scenarioId ||
       errors.stage ||
       errors.description ||
-      errors.fileId
+      errors.files
     ) {
       setCreateShowErrors(true);
       return;
     }
-    await createMutation.mutateAsync({
-      characterId: createValues.characterId,
-      scenarioId: createValues.scenarioId,
-      stage: createValues.stage as RoleplayStage,
-      description: createValues.description.trim(),
-      isPregenerated: true,
-      isPromotional: createValues.isPromotional,
-      fileId: createValues.fileId,
-    });
-    setIsDrawerOpen(false);
+
+    setIsCreating(true);
+    try {
+      const retainedFiles = createFiles.filter(
+        (item) => item.status !== 'uploaded' || !item.uploadedFile?.id,
+      );
+      const failedCreateFiles: CreateImageUploadItem[] = [];
+      let createdCount = 0;
+
+      for (const item of createFiles) {
+        if (item.status !== 'uploaded' || !item.uploadedFile?.id) {
+          continue;
+        }
+
+        try {
+          await createCharacterImageApi({
+            characterId: createValues.characterId,
+            scenarioId: createValues.scenarioId,
+            stage: createValues.stage as RoleplayStage,
+            description: createValues.description.trim(),
+            isPregenerated: true,
+            isPromotional: createValues.isPromotional,
+            fileId: item.uploadedFile.id,
+          });
+          createdCount += 1;
+        } catch (error) {
+          failedCreateFiles.push({
+            ...item,
+            status: 'uploaded',
+            message: resolveErrorMessage(error),
+          });
+        }
+      }
+
+      if (createdCount > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['character-images'] });
+      }
+
+      const nextFiles = [...retainedFiles, ...failedCreateFiles];
+      setCreateFiles(nextFiles);
+
+      if (failedCreateFiles.length > 0) {
+        const totalAttempted = createdCount + failedCreateFiles.length;
+        notifyError(
+          new Error(`Created ${createdCount} of ${totalAttempted} images.`),
+          'Unable to create some images.',
+        );
+        setCreateShowErrors(true);
+        return;
+      }
+
+      const createdLabel =
+        createdCount === 1 ? 'image created.' : 'images created.';
+      notifySuccess('Images created.', `${createdCount} ${createdLabel}`);
+      if (nextFiles.length === 0) {
+        setIsDrawerOpen(false);
+      }
+    } catch (error) {
+      notifyError(error, 'Unable to create images.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const fetchAllImageSummaries = useCallback(async () => {
@@ -745,7 +1016,7 @@ export function CharacterImagesPage() {
   };
 
   const handleImportButtonClick = () => {
-    if (isImporting || isExporting || createMutation.isPending) return;
+    if (isImporting || isExporting || isCreateBusy) return;
     importInputRef.current?.click();
   };
 
@@ -961,7 +1232,7 @@ export function CharacterImagesPage() {
               variant="ghost"
               onClick={handleExport}
               loading={isExporting}
-              disabled={isImporting || createMutation.isPending}
+              disabled={isImporting || isCreateBusy}
             />
             <IconButton
               aria-label="Import images"
@@ -970,7 +1241,7 @@ export function CharacterImagesPage() {
               variant="ghost"
               onClick={handleImportButtonClick}
               loading={isImporting}
-              disabled={isExporting || createMutation.isPending}
+              disabled={isExporting || isCreateBusy}
             />
             <Button
               iconLeft={<PlusIcon />}
@@ -1253,7 +1524,7 @@ export function CharacterImagesPage() {
                   }))
                 }
                 fullWidth
-                disabled={!createValues.characterId || createMutation.isPending}
+                disabled={!createValues.characterId || isCreating}
                 invalid={Boolean(createErrors.scenarioId)}
               />
             </Field>
@@ -1276,7 +1547,7 @@ export function CharacterImagesPage() {
                   }))
                 }
                 fullWidth
-                disabled={createMutation.isPending}
+                disabled={isCreating}
                 invalid={Boolean(createErrors.stage)}
               />
             </Field>
@@ -1302,32 +1573,85 @@ export function CharacterImagesPage() {
             />
           </Field>
 
-          <div>
-            <FileUpload
-              label="Image file"
-              folder={FileDir.Public}
-              value={mainFile}
-              onChange={(file) => {
-                setMainFile(file);
-                setCreateValues((prev) => ({
-                  ...prev,
-                  fileId: file?.id ?? '',
-                }));
-              }}
-              onError={(message) =>
-                notifyError(new Error(message), 'Unable to upload image.')
-              }
-            />
-            {createErrors.fileId ? (
-              <Typography
-                variant="caption"
-                tone="warning"
-                className={s.fileError}
-              >
-                {createErrors.fileId}
-              </Typography>
-            ) : null}
-          </div>
+          <Field label="Image files" error={createErrors.files}>
+            <Stack gap="12px">
+              <div className={s.uploadActions}>
+                <Button
+                  variant="secondary"
+                  onClick={handleAddCreateFilesClick}
+                  disabled={isCreateBusy}
+                >
+                  Choose images
+                </Button>
+                <Typography variant="meta" tone="muted">
+                  {isUploadingFiles
+                    ? 'Uploading images...'
+                    : `${uploadedCreateFiles.length} uploaded`}
+                </Typography>
+              </div>
+
+              {createFiles.length === 0 ? (
+                <div className={s.uploadEmpty}>
+                  <Typography variant="caption" tone="muted">
+                    No images uploaded yet.
+                  </Typography>
+                </div>
+              ) : (
+                <div className={s.uploadList}>
+                  {createFiles.map((item) => (
+                    <div key={item.id} className={s.uploadItem}>
+                      <div className={s.uploadItemRow}>
+                        <div className={s.uploadItemMeta}>
+                          <Typography variant="body" truncate>
+                            {item.fileName}
+                          </Typography>
+                          <Typography variant="caption" tone="muted">
+                            {formatFileSize(item.fileSize)}
+                          </Typography>
+                        </div>
+                        <div className={s.uploadItemActions}>
+                          {item.status === 'uploaded' ? (
+                            <Badge tone="success">Uploaded</Badge>
+                          ) : item.status === 'uploading' ? (
+                            <Badge tone="accent">Uploading</Badge>
+                          ) : (
+                            <Badge tone="warning">Failed</Badge>
+                          )}
+                          <IconButton
+                            aria-label="Remove image file"
+                            tooltip="Remove"
+                            variant="ghost"
+                            tone="danger"
+                            size="sm"
+                            icon={<Cross1Icon />}
+                            disabled={isCreating || item.status === 'uploading'}
+                            onClick={() => handleRemoveCreateFile(item.id)}
+                          />
+                        </div>
+                      </div>
+                      {item.message ? (
+                        <Typography variant="caption" tone="warning">
+                          {item.message}
+                        </Typography>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Input
+                key={createFilesInputKey}
+                id={createFilesInputId}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                multiple
+                disabled={isCreateBusy}
+                onChange={handleCreateFilesChange}
+                wrapperClassName={s.hiddenInputWrapper}
+                className={s.hiddenInput}
+              />
+            </Stack>
+          </Field>
 
           <Field label="Flags">
             <div className={s.toggleGrid}>
@@ -1353,22 +1677,22 @@ export function CharacterImagesPage() {
             <Button
               variant="secondary"
               onClick={closeCreateDrawer}
-              disabled={createMutation.isPending}
+              disabled={isCreateBusy}
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreate}
-              loading={createMutation.isPending}
+              loading={isCreating}
               disabled={
                 !createIsValid ||
-                createMutation.isPending ||
+                isCreateBusy ||
                 Boolean(
                   createErrors.characterId ||
                   createErrors.scenarioId ||
                   createErrors.stage ||
                   createErrors.description ||
-                  createErrors.fileId,
+                  createErrors.files,
                 )
               }
             >

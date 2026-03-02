@@ -64,7 +64,7 @@ export function ForgotPasswordPage() {
                   <Input
                     id="forgot-email"
                     type="email"
-                    placeholder="you@aigfonline.com"
+                    placeholder="you@aeraonline.com"
                     autoComplete="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}

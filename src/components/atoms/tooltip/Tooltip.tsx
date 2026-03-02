@@ -1,14 +1,14 @@
-import type { ReactNode } from 'react'
-import { Tooltip as RadixTooltip } from '@radix-ui/themes'
+import { Tooltip as RadixTooltip } from '@radix-ui/themes';
+import type { ReactNode } from 'react';
 
 type TooltipProps = {
-  content: ReactNode
-  side?: 'top' | 'right' | 'bottom' | 'left'
-  align?: 'start' | 'center' | 'end'
-  delayDuration?: number
-  disabled?: boolean
-  children: ReactNode
-}
+  content: ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  align?: 'start' | 'center' | 'end';
+  delayDuration?: number;
+  disabled?: boolean;
+  children: ReactNode;
+};
 
 export function Tooltip({
   content,
@@ -19,7 +19,7 @@ export function Tooltip({
   children,
 }: TooltipProps) {
   if (!content || disabled) {
-    return <>{children}</>
+    return <>{children}</>;
   }
 
   return (
@@ -31,5 +31,5 @@ export function Tooltip({
     >
       {children}
     </RadixTooltip>
-  )
+  );
 }

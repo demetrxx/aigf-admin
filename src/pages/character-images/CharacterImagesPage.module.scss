@@ -127,8 +127,55 @@
   outline-offset: -2px;
 }
 
-.fileError {
-  margin-top: var(--space-2);
+.hiddenInputWrapper {
+  display: none;
+}
+
+.uploadActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.uploadEmpty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-base);
+  padding: var(--space-3);
+}
+
+.uploadList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.uploadItem {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.uploadItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.uploadItemMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.uploadItemActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .toggleGrid {

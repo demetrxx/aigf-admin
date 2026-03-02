@@ -67,6 +67,11 @@ export function getLastFullMonthId(): MonthId {
   return toMonthId(year, monthIndex);
 }
 
+export function getCurrentMonthId(): MonthId {
+  const now = new Date();
+  return toMonthId(now.getUTCFullYear(), now.getUTCMonth());
+}
+
 export function getDefaultRange(): { start: MonthId; end: MonthId } {
   const end = getLastFullMonthId();
   const start = addMonths(end, -11);

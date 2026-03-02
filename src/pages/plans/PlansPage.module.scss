@@ -13,6 +13,10 @@
   flex-wrap: wrap;
 }
 
+.hiddenInput {
+  display: none;
+}
+
 .titleBlock {
   display: flex;
   flex-direction: column;
@@ -91,4 +95,44 @@
 
 .helperText {
   max-width: 320px;
+}
+
+.itemsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.itemsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.itemRow {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.itemAction {
+  display: flex;
+  align-items: flex-end;
+}
+
+.itemsEmptyHint {
+  max-width: 52ch;
+}
+
+@media (min-width: 720px) {
+  .itemRow {
+    grid-template-columns: 120px minmax(0, 1fr) auto;
+    align-items: start;
+  }
 }

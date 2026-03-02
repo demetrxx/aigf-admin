@@ -1,12 +1,13 @@
-import type { IGift } from '@/common/types/gift.type.ts';
-
 import type { IFile } from './file.type.ts';
+import type { IGift } from './gift.type.ts';
 import type { ILora } from './lora.type';
 
 export interface ICharacter {
   id: string;
   name: string;
   description: string;
+  promoImg?: IFile | null;
+  isFeatured: boolean;
   avatar: IFile;
   emoji: string;
   isActive: boolean;
@@ -69,7 +70,13 @@ export interface IScenario {
   id: string;
   name: string;
   emoji: string;
+  slug: string;
   description: string;
+  shortDescription?: string | null;
+  promoImg?: IFile | null;
+  promoImgHorizontal?: IFile | null;
+  isActive: boolean;
+  isNew: boolean;
   personality: string;
   messagingStyle: string;
   appearance: string;

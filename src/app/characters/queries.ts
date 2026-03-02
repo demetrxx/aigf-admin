@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { notifyError, notifySuccess } from '@/app/toast';
-import type { RoleplayStage } from '@/common/types';
+import type { ICharacter, RoleplayStage } from '@/common/types';
 import {
   addScenarioStageGift,
   deleteScenarioStageGift,
@@ -22,17 +22,27 @@ import {
   updateScenarioStage,
   updateScenarioStageGift,
 } from './charactersApi';
+import type { PaginatedResponse } from '../paginated-response.type.ts';
 
 const characterKeys = {
   list: (params: CharactersListParams) => ['characters', params] as const,
   details: (id: string) => ['character', id] as const,
 };
 
-export function useCharacters(params: CharactersListParams) {
+type CharactersQueryOptions<T> = {
+  enabled?: boolean;
+  placeholderData?: (previous: T | undefined) => T | undefined;
+};
+
+export function useCharacters(
+  params: CharactersListParams,
+  options: CharactersQueryOptions<PaginatedResponse<ICharacter>> = {},
+) {
   return useQuery({
     queryKey: characterKeys.list(params),
     queryFn: () => getCharacters(params),
-    placeholderData: (previousData) => previousData,
+    placeholderData: options.placeholderData ?? ((previousData) => previousData),
+    enabled: options.enabled ?? true,
   });
 }
 

@@ -156,6 +156,25 @@
 
 }
 
+.deeplinkCell {
+  display: inline-block;
+  max-width: 60px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scenarioCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+}
+
+.totalsNote {
+  max-width: 420px;
+}
+
 .alignRight {
   display: inline-block;
   width: 100%;

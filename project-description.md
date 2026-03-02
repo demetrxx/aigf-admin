@@ -2,11 +2,11 @@
 
 ---
 
-## Project: AIgf Admin — Frontend Application
+## Project: Aera Admin — Frontend Application
 
 ### Overview
 
-AIgf Admin is an internal web application for managing the AIgf (ai-girlfriend) product.
+Aera Admin is an internal web application for managing the Aera (ai-girlfriend) product.
 It is used by customers and engineers for operations, configuration, and support workflows.
 
 The frontend is a **SPA** that communicates with an existing **NestJS backend** via HTTP APIs.

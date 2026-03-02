@@ -48,6 +48,7 @@ const ROLE_OPTIONS = [
   { label: 'Owner', value: UserRole.Owner },
   { label: 'Moderator', value: UserRole.Moderator },
   { label: 'Developer', value: UserRole.Developer },
+  { label: 'Target', value: UserRole.Target },
 ];
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {

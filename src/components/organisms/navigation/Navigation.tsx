@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+import { useAuth } from '@/app/auth';
 import {
   ChartIcon,
   CircleDotIcon,
@@ -11,11 +12,14 @@ import {
   LogsIcon,
   MessageSquareQuoteIcon,
   NewspaperIcon,
+  RadioIcon,
+  SendIcon,
   UserCogIcon,
   UserIcon,
   UsersRoundIcon,
 } from '@/assets/icons';
 import { Button } from '@/atoms';
+import { UserRole } from '@/common/types';
 
 import s from './Navigation.module.scss';
 
@@ -32,6 +36,8 @@ const navItems: NavItem[] = [
   { label: 'LoRAs', to: '/loras', icon: <LayersIcon /> },
   { label: 'Gifts', to: '/gifts', icon: <GiftIcon /> },
   { label: 'Users', to: '/users', icon: <UserIcon /> },
+  { label: 'Chats', to: '/chats', icon: <SendIcon /> },
+  { label: 'Broadcast', to: '/broadcast', icon: <RadioIcon /> },
   { label: 'Plans', to: '/plans', icon: <DollarSignIcon /> },
   { label: 'Prompts', to: '/prompts', icon: <MessageSquareQuoteIcon /> },
   { label: 'Datasets', to: '/datasets', icon: <CircleDotIcon /> },
@@ -42,10 +48,15 @@ const navItems: NavItem[] = [
 
 export function Navigation() {
   const location = useLocation();
+  const { user } = useAuth();
+  const isTargetUser = user?.role === UserRole.Target;
+  const visibleItems = isTargetUser
+    ? navItems.filter((item) => item.to === '/')
+    : navItems;
 
   return (
     <nav className={s.nav} aria-label="Primary">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const isActive =
           location.pathname === item.to ||
           (item.to !== '/' && location.pathname.startsWith(item.to));

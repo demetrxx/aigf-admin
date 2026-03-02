@@ -2,30 +2,33 @@ import { Route, Routes } from 'react-router-dom';
 
 import { AuthGuard } from '@/app/auth';
 import {
+  AdminsPage,
+  AnalyticsPage,
   AuthCallbackPage,
   AuthPage,
-  AnalyticsPage,
-  AdminsPage,
+  BroadcastPage,
+  CharacterDetailsPage,
   CharacterImageDetailsPage,
   CharacterImagesPage,
-  CharacterDetailsPage,
   CharactersPage,
+  ChatDetailsPage,
+  ChatsPage,
   ConfirmEmailPage,
   DatasetDetailsPage,
   DatasetsPage,
   ForgotPasswordPage,
-  GenerationDetailsPage,
   GenerateImagePage,
+  GenerationDetailsPage,
   GenerationsPage,
   GiftDetailsPage,
   GiftsPage,
   LogsPage,
   LorasPage,
-  PromptCreatePage,
-  PromptUpdatePage,
-  PromptsPage,
   PlansPage,
   ProfilePage,
+  PromptCreatePage,
+  PromptsPage,
+  PromptUpdatePage,
   ResetPasswordPage,
   UiKitPage,
   UsersPage,
@@ -50,7 +53,10 @@ export function AppRoutes() {
           element={<CharacterImageDetailsPage />}
         />
         <Route path="/admins" element={<AdminsPage />} />
+        <Route path="/broadcast" element={<BroadcastPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/chats" element={<ChatsPage />} />
+        <Route path="/chats/:id" element={<ChatDetailsPage />} />
         <Route path="/generations/new" element={<GenerateImagePage />} />
         <Route path="/generations" element={<GenerationsPage />} />
         <Route path="/generations/:id" element={<GenerationDetailsPage />} />

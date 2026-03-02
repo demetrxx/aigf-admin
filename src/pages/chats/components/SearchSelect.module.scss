@@ -1,0 +1,50 @@
+.trigger {
+  width: 100%;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 280px;
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.optionButton {
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: hsl(var(--fg));
+  cursor: pointer;
+}
+
+.optionButton:hover {
+  background: hsl(var(--bg));
+}
+
+.optionActive {
+  border-color: hsl(var(--border));
+  background: hsl(var(--accent-muted));
+}
+
+.optionLabel {
+  display: block;
+  font-size: var(--text-sm);
+}
+
+.optionMeta {
+  display: block;
+  font-size: var(--text-xs);
+  color: hsl(var(--fg-muted));
+}

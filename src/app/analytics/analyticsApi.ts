@@ -1,5 +1,6 @@
 import { apiFetch } from '@/app/api';
 import { buildApiError } from '@/app/api/apiErrors';
+
 import type { AnalyticsMetricKey, AnalyticsSection } from './metricRegistry';
 
 export type AnalyticsMainRow = {
@@ -26,8 +27,19 @@ export type AnalyticsMetricsResponse = {
   metrics: AnalyticsMetricSeries[];
 };
 
-export type PaymentsConversionGroupBy = 'character' | 'scenario';
-export type PaymentsRevenueGroupBy = 'character' | 'deeplink';
+export type DailyAnalyticsItem = {
+  day: string;
+  unique: number;
+  total: number;
+  customers: number;
+  revenue: number;
+  conversion: number;
+  arpu: number;
+  arpc: number;
+};
+
+export type PaymentsConversionGroupBy = 'character' | 'scenario' | 'deeplink';
+export type PaymentsRevenueGroupBy = 'character' | 'scenario' | 'deeplink';
 
 export type PaymentsConversionBreakdownItem = {
   id: string;
@@ -43,6 +55,20 @@ export type PaymentsRevenueBreakdownItem = {
   deeplink?: string;
   revenue: number;
   transactions: number;
+};
+
+export type DeeplinkAnalyticsItem = {
+  deeplink: string;
+  ref?: string | null;
+  character?: { id: string; name: string } | null;
+  scenario?: { id: string; name: string; slug?: string | null } | null;
+  total: number;
+  unique: number;
+  visits: number;
+  customers: number;
+  transactions: number;
+  revenue: number;
+  conversion: number;
 };
 
 export async function getAnalyticsMainRange(params: {
@@ -83,6 +109,22 @@ export async function getAnalyticsMetrics(params: {
   return (await res.json()) as AnalyticsMetricsResponse;
 }
 
+export async function getAnalyticsDaily(params: {
+  startDate: string;
+  endDate: string;
+}) {
+  const query = new URLSearchParams();
+  query.set('startDate', params.startDate);
+  query.set('endDate', params.endDate);
+
+  const res = await apiFetch(`/admin/analytics/daily?${query.toString()}`);
+  if (!res.ok) {
+    throw await buildApiError(res, 'Unable to load daily analytics.');
+  }
+
+  return (await res.json()) as DailyAnalyticsItem[];
+}
+
 export async function getPaymentsConversionBreakdown(params: {
   groupBy: PaymentsConversionGroupBy;
   month: string;
@@ -95,10 +137,7 @@ export async function getPaymentsConversionBreakdown(params: {
     `/admin/analytics/payments/breakdown/conversion?${query.toString()}`,
   );
   if (!res.ok) {
-    throw await buildApiError(
-      res,
-      'Unable to load conversion breakdown.',
-    );
+    throw await buildApiError(res, 'Unable to load conversion breakdown.');
   }
 
   return (await res.json()) as PaymentsConversionBreakdownItem[];
@@ -120,4 +159,26 @@ export async function getPaymentsRevenueBreakdown(params: {
   }
 
   return (await res.json()) as PaymentsRevenueBreakdownItem[];
+}
+
+export async function getAnalyticsDeeplinks(params: {
+  startDate: string;
+  endDate: string;
+  ref?: string;
+  characterId?: string;
+  scenarioId?: string;
+}) {
+  const query = new URLSearchParams();
+  query.set('startDate', params.startDate);
+  query.set('endDate', params.endDate);
+  if (params.ref) query.set('ref', params.ref);
+  if (params.characterId) query.set('characterId', params.characterId);
+  if (params.scenarioId) query.set('scenarioId', params.scenarioId);
+
+  const res = await apiFetch(`/admin/analytics/deeplinks?${query.toString()}`);
+  if (!res.ok) {
+    throw await buildApiError(res, 'Unable to load deeplinks analytics.');
+  }
+
+  return (await res.json()) as DeeplinkAnalyticsItem[];
 }
